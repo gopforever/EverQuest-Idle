@@ -6,26 +6,28 @@ import { RightPanel } from './components/layout/RightPanel';
 import { CombatLog } from './components/layout/CombatLog';
 import { InventoryPanel } from './components/panels/InventoryPanel';
 import { ZonesPanel } from './components/panels/ZonesPanel';
+import { SkillsPanel } from './components/panels/SkillsPanel';
+import { SpellsPanel } from './components/panels/SpellsPanel';
+import { WhoPanel } from './components/panels/WhoPanel';
+import { GuildPanel } from './components/panels/GuildPanel';
+import { AchievementsPanel } from './components/panels/AchievementsPanel';
+import { BazaarPanel } from './components/panels/BazaarPanel';
+import { TradeskillPanel } from './components/panels/TradeskillPanel';
 import { useGameLoop } from './hooks/useGameLoop';
 import { useGameStore } from './store/gameStore';
 
-function PlaceholderPanel({ title }: { title: string }) {
-  return (
-    <div className="flex-1 overflow-y-auto p-4 flex items-center justify-center" style={{ color: 'var(--eq-text-dim)' }}>
-      <div className="text-center">
-        <div className="text-2xl mb-2">🚧</div>
-        <div className="font-bold" style={{ color: 'var(--eq-gold)' }}>{title}</div>
-        <div className="text-xs mt-1">Coming Soon</div>
-      </div>
-    </div>
-  );
-}
 
 function PanelContent({ activePanel }: { activePanel: PanelId }) {
   switch (activePanel) {
     case 'inventory': return <InventoryPanel />;
     case 'zones': return <ZonesPanel />;
-    default: return <PlaceholderPanel title={activePanel.toUpperCase()} />;
+    case 'skills': return <SkillsPanel />;
+    case 'spells': return <SpellsPanel />;
+    case 'who': return <WhoPanel />;
+    case 'guild': return <GuildPanel />;
+    case 'achievements': return <AchievementsPanel />;
+    case 'bazaar': return <BazaarPanel />;
+    case 'tradeskill': return <TradeskillPanel />;
   }
 }
 
