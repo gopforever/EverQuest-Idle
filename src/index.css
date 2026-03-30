@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --eq-bg: #0d0b08;
+  --eq-panel: #1a1510;
+  --eq-border: #8b6914;
+  --eq-border-light: #c4982a;
+  --eq-text: #e8dcc8;
+  --eq-text-dim: #9a8870;
+  --eq-gold: #d4a520;
+  --eq-orange: #c86400;
+  --eq-red: #8b1a1a;
+  --eq-blue: #1a3a8b;
+  --eq-green: #1a6b1a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--eq-bg);
+  color: var(--eq-text);
+  font-family: "Palatino Linotype", Palatino, Georgia, serif;
+  overflow: hidden;
+}
+
+/* Custom EQ scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--eq-panel);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--eq-border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--eq-border-light);
+}
+
+/* EQ button style */
+.eq-btn {
+  background-color: #2a2218;
+  border: 1px solid var(--eq-border);
+  color: var(--eq-text);
+  padding: 4px 10px;
+  font-family: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.eq-btn:hover {
+  background-color: #3a3228;
+  border-color: var(--eq-border-light);
+}
+
+.eq-btn:active {
+  background-color: #1a1510;
+}
+
+/* EQ panel border */
+.eq-panel {
+  background-color: var(--eq-panel);
+  border: 1px solid var(--eq-border);
+}
+
+/* Combat log parchment style */
+.combat-log-bg {
+  background-color: var(--eq-panel);
+  border-top: 1px solid var(--eq-border);
+}
