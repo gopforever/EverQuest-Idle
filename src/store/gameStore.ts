@@ -184,17 +184,24 @@ export const useGameStore = create<GameStore>((set, get) => ({
   changeZone: (zoneId: string) => {
     const zone = ZONES[zoneId];
     if (!zone) return;
-    const { player } = get();
-    if (player.level < zone.levelRange.min - 5 && zone.levelRange.min > 1) {
-      get().addCombatLogEntry({
-        message: `You are too low level for ${zone.name}.`,
+    const { player, combatLog } = get();
+
+    // Enforce minLevel gate
+    if (zone.minLevel && player.level < zone.minLevel) {
+      const entry: CombatLogEntry = {
+        id: `${Date.now()}-levelgate`,
+        timestamp: Date.now(),
+        message: `You must be at least level ${zone.minLevel} to enter ${zone.name}.`,
         type: 'system',
-      });
+      };
+      set({ combatLog: [...combatLog, entry].slice(-200) });
       return;
     }
+
+    // Stop combat when changing zones
     set({
       currentZone: zone,
-      combat: { ...get().combat, currentMonster: null, monsterCurrentHp: 0 },
+      combat: { ...get().combat, autoAttacking: false, currentMonster: null, monsterCurrentHp: 0 },
       player: { ...player, currentZone: zoneId },
     });
     get().addCombatLogEntry({
