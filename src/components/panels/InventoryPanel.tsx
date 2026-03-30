@@ -1,14 +1,8 @@
 import { useGameStore } from '../../store/gameStore';
 import { HpBar } from '../ui/HpBar';
 import { Tooltip } from '../ui/Tooltip';
+import { EQPanelHeader } from '../ui/EQPanelHeader';
 import type { EquipSlot, Item } from '../../types';
-
-const GEAR_SLOTS: EquipSlot[] = [
-  'Head', 'Face', 'Ear1', 'Ear2', 'Neck', 'Shoulders',
-  'Arms', 'Back', 'Wrist1', 'Wrist2', 'Range', 'Hands',
-  'Primary', 'Secondary', 'Fingers1', 'Fingers2', 'Chest',
-  'Legs', 'Feet', 'Waist', 'Ammo',
-];
 
 function ItemTooltipContent({ item }: { item: Item }) {
   return (
@@ -30,8 +24,69 @@ function ItemTooltipContent({ item }: { item: Item }) {
   );
 }
 
+function SlotCell({ slot, item }: { slot: EquipSlot | null; item?: Item }) {
+  if (!slot) {
+    return <div style={{ width: '44px', height: '44px' }} />;
+  }
+  return (
+    <Tooltip content={item ? <ItemTooltipContent item={item} /> : <span>{slot} — empty</span>}>
+      <div
+        style={{
+          width: '44px',
+          height: '44px',
+          border: `1px solid ${item ? 'var(--eq-border-light)' : 'var(--eq-border)'}`,
+          backgroundColor: item ? '#2a2010' : '#0d0b08',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          overflow: 'hidden',
+          padding: '2px',
+        }}
+        title={slot}
+      >
+        <div style={{ fontSize: '9px', color: 'var(--eq-text-dim)', lineHeight: 1, marginBottom: '1px' }}>
+          {slot}
+        </div>
+        <div
+          style={{
+            fontSize: '9px',
+            color: item ? 'var(--eq-gold)' : 'var(--eq-text-dim)',
+            textAlign: 'center',
+            wordBreak: 'break-all',
+            lineHeight: 1.1,
+          }}
+        >
+          {item ? (item.name.length > 9 ? item.name.slice(0, 8) + '…' : item.name) : '—'}
+        </div>
+      </div>
+    </Tooltip>
+  );
+}
+
 export function InventoryPanel() {
   const player = useGameStore((s) => s.player);
+
+  // Calculate total equipped weight
+  const totalWeight = Object.values(player.gear).reduce(
+    (sum, item) => sum + (item ? item.weight : 0),
+    0
+  );
+
+  // Left column slots
+  const leftSlots: EquipSlot[] = ['Ear1', 'Head', 'Face', 'Neck', 'Shoulders', 'Arms', 'Back', 'Wrist1', 'Wrist2', 'Range'];
+  // Right column slots (null = spacer)
+  const rightSlots: (EquipSlot | null)[] = ['Ear2', null, null, 'Chest', null, 'Hands', 'Primary', 'Secondary', 'Fingers1', 'Fingers2'];
+  // Bottom row slots
+  const bottomSlots: EquipSlot[] = ['Legs', 'Feet', 'Waist', 'Ammo'];
+
+  const initials = player.name
+    .split(' ')
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
 
   return (
     <div className="flex-1 overflow-y-auto p-3" style={{ color: 'var(--eq-text)' }}>
@@ -66,43 +121,64 @@ export function InventoryPanel() {
         </div>
       </div>
 
-      {/* Equipment paper doll */}
+      {/* Paper doll */}
+      <EQPanelHeader title="EQUIPMENT" />
       <div className="mb-3">
-        <div className="text-xs font-bold mb-1" style={{ color: 'var(--eq-gold)' }}>EQUIPMENT</div>
-        <div className="grid grid-cols-3 gap-1">
-          {GEAR_SLOTS.map((slot) => {
-            const item = player.gear[slot];
-            return (
-              <Tooltip key={slot} content={item ? <ItemTooltipContent item={item} /> : <span>{slot} — empty</span>}>
-                <div
-                  className="p-1 border rounded text-center cursor-pointer hover:opacity-80 transition-opacity"
-                  style={{
-                    borderColor: item ? 'var(--eq-border-light)' : 'var(--eq-border)',
-                    backgroundColor: item ? '#2a2010' : '#0d0b08',
-                    minHeight: '36px',
-                  }}
-                >
-                  <div className="text-xs leading-tight" style={{ color: item ? 'var(--eq-gold)' : 'var(--eq-text-dim)' }}>
-                    {item ? item.name.slice(0, 8) + (item.name.length > 8 ? '…' : '') : slot.slice(0, 6)}
-                  </div>
-                </div>
-              </Tooltip>
-            );
-          })}
+        {/* Main 3-column layout */}
+        <div style={{ display: 'flex', gap: '4px', justifyContent: 'center', marginBottom: '4px' }}>
+          {/* Left column */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            {leftSlots.map((slot) => (
+              <SlotCell key={slot} slot={slot} item={player.gear[slot]} />
+            ))}
+          </div>
+          {/* Center: portrait */}
+          <div
+            style={{
+              width: '80px',
+              height: '120px',
+              border: '2px solid var(--eq-gold)',
+              backgroundColor: '#1a1510',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              alignSelf: 'flex-start',
+              marginTop: '2px',
+            }}
+          >
+            <span style={{ color: 'var(--eq-gold)', fontSize: '24px', fontWeight: 'bold' }}>{initials}</span>
+          </div>
+          {/* Right column */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            {rightSlots.map((slot, idx) => (
+              <SlotCell key={slot ?? `spacer-${idx}`} slot={slot} item={slot ? player.gear[slot] : undefined} />
+            ))}
+          </div>
+        </div>
+        {/* Bottom row */}
+        <div style={{ display: 'flex', gap: '2px', justifyContent: 'center' }}>
+          {bottomSlots.map((slot) => (
+            <SlotCell key={slot} slot={slot} item={player.gear[slot]} />
+          ))}
         </div>
       </div>
 
       {/* Currency */}
-      <div className="p-2 border rounded text-xs" style={{ borderColor: 'var(--eq-border)', backgroundColor: 'var(--eq-panel)' }}>
+      <div className="mb-2 p-2 border rounded text-xs" style={{ borderColor: 'var(--eq-border)', backgroundColor: 'var(--eq-panel)' }}>
         <div className="font-bold mb-1" style={{ color: 'var(--eq-gold)' }}>CURRENCY</div>
-        <div className="grid grid-cols-4 gap-1 text-center">
+        <div className="flex gap-3">
           {(['pp', 'gp', 'sp', 'cp'] as const).map((c) => (
-            <div key={c}>
-              <div style={{ color: 'var(--eq-text-dim)' }}>{c.toUpperCase()}</div>
-              <div style={{ color: 'var(--eq-text)' }}>{player.currency[c]}</div>
-            </div>
+            <span key={c}>
+              <span style={{ color: 'var(--eq-text-dim)' }}>{c}: </span>
+              <span style={{ color: 'var(--eq-gold)' }}>{player.currency[c]}</span>
+            </span>
           ))}
         </div>
+      </div>
+
+      {/* Weight */}
+      <div className="text-xs" style={{ color: 'var(--eq-text-dim)' }}>
+        Weight: <span style={{ color: 'var(--eq-text)' }}>{totalWeight.toFixed(1)} / 40.0</span>
       </div>
     </div>
   );

@@ -139,6 +139,7 @@ interface GameStore extends GameState {
   moveToZone: (zoneId: string) => void;
   setCurrentTarget: (monsterId: string | null) => void;
   incrementTick: () => void;
+  clearCombatLog: () => void;
 }
 
 const initialGhosts = Array.from({ length: 100 }, (_, i) => makeGhost(i));
@@ -331,4 +332,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
   incrementTick: () => {
     set((state) => ({ tickCount: state.tickCount + 1 }));
   },
+
+  clearCombatLog: () => set({ combatLog: [] }),
 }));

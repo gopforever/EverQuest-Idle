@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
+import { EQPanelHeader } from '../ui/EQPanelHeader';
 
 const TRADESKILLS = [
   'Baking', 'Brewing', 'Blacksmithing', 'Fletching',
@@ -7,6 +8,13 @@ const TRADESKILLS = [
 ] as const;
 
 type Tradeskill = typeof TRADESKILLS[number];
+
+const BEGINNER_RECIPES: { skill: Tradeskill; name: string; ingredients: string }[] = [
+  { skill: 'Baking', name: 'Bat Wing Crunchies', ingredients: 'Bat Wing × 2, Dough' },
+  { skill: 'Brewing', name: 'Kromrif Blood', ingredients: 'Vinegar, Bat Blood' },
+  { skill: 'Tailoring', name: 'Spiderling Silk Wristguard', ingredients: 'Spiderling Silk × 4' },
+  { skill: 'Blacksmithing', name: 'Rusty Axe', ingredients: 'Small Brick of Ore, Blade Mold' },
+];
 
 function IngredientSlot({ index }: { index: number }) {
   return (
@@ -23,6 +31,7 @@ function IngredientSlot({ index }: { index: number }) {
         justifyContent: 'center',
         fontSize: '10px',
         color: 'var(--eq-text-dim)',
+        flexShrink: 0,
       }}
     >
       {index + 1}
@@ -30,26 +39,55 @@ function IngredientSlot({ index }: { index: number }) {
   );
 }
 
+function ResultSlot() {
+  return (
+    <div
+      title="Result slot"
+      style={{
+        width: '80px',
+        height: '80px',
+        backgroundColor: '#0d0b08',
+        border: '1px dashed var(--eq-border-light)',
+        borderRadius: '3px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '10px',
+        color: 'var(--eq-text-dim)',
+        flexShrink: 0,
+      }}
+    >
+      <div style={{ fontSize: '18px', opacity: 0.3 }}>?</div>
+      <div style={{ fontSize: '9px' }}>Result</div>
+    </div>
+  );
+}
+
 export function TradeskillPanel() {
   const player = useGameStore((s) => s.player);
   const [selectedSkill, setSelectedSkill] = useState<Tradeskill>('Baking');
+  const [combineMessage, setCombineMessage] = useState<string | null>(null);
 
   const skillLevel = player.skills[selectedSkill] ?? 0;
   const pct = Math.min(100, Math.floor((skillLevel / 300) * 100));
 
+  const handleCombine = () => {
+    setCombineMessage('You must find the recipe first.');
+    setTimeout(() => setCombineMessage(null), 3000);
+  };
+
   return (
     <div className="flex-1 overflow-y-auto" style={{ color: 'var(--eq-text)', fontSize: '12px' }}>
       {/* Tradeskill selector */}
-      <div
-        className="text-xs font-bold text-center py-1"
-        style={{ backgroundColor: '#2a1f0a', color: 'var(--eq-gold)', border: '1px solid var(--eq-border)' }}
-      >
-        TRADESKILLS
-      </div>
+      <EQPanelHeader title="TRADESKILLS" />
       <div className="p-2">
         <select
           value={selectedSkill}
-          onChange={(e) => setSelectedSkill(e.target.value as Tradeskill)}
+          onChange={(e) => {
+            setSelectedSkill(e.target.value as Tradeskill);
+            setCombineMessage(null);
+          }}
           style={{
             backgroundColor: '#0d0b08',
             border: '1px solid var(--eq-border)',
@@ -89,25 +127,24 @@ export function TradeskillPanel() {
       </div>
 
       {/* Combine box */}
-      <div
-        className="text-xs font-bold text-center py-1"
-        style={{ backgroundColor: '#2a1f0a', color: 'var(--eq-gold)', border: '1px solid var(--eq-border)' }}
-      >
-        COMBINE BOX
-      </div>
+      <EQPanelHeader title="COMBINE BOX" />
       <div className="p-3">
-        <div className="flex gap-2 justify-center mb-3">
-          {Array.from({ length: 4 }, (_, i) => (
-            <IngredientSlot key={i} index={i} />
-          ))}
+        {/* 4×2 ingredient grid + result slot */}
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center', marginBottom: '8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 60px)', gap: '4px' }}>
+            {Array.from({ length: 8 }, (_, i) => (
+              <IngredientSlot key={i} index={i} />
+            ))}
+          </div>
+          <ResultSlot />
         </div>
         <div className="text-center">
           <button
-            onClick={() => undefined}
+            onClick={handleCombine}
             style={{
-              backgroundColor: 'var(--eq-panel)',
+              backgroundColor: '#2a1f0a',
               border: '1px solid var(--eq-border)',
-              color: 'var(--eq-text)',
+              color: 'var(--eq-gold)',
               padding: '4px 16px',
               cursor: 'pointer',
               fontSize: '12px',
@@ -117,18 +154,29 @@ export function TradeskillPanel() {
           >
             [COMBINE]
           </button>
+          {combineMessage && (
+            <div className="text-xs mt-2" style={{ color: 'var(--eq-orange)' }}>
+              {combineMessage}
+            </div>
+          )}
         </div>
       </div>
 
       {/* Recipe browser */}
-      <div
-        className="text-xs font-bold text-center py-1"
-        style={{ backgroundColor: '#2a1f0a', color: 'var(--eq-gold)', border: '1px solid var(--eq-border)' }}
-      >
-        KNOWN RECIPES
-      </div>
-      <div className="p-3 text-xs text-center" style={{ color: 'var(--eq-text-dim)' }}>
-        No recipes known for {selectedSkill}.
+      <EQPanelHeader title="BEGINNER RECIPES" />
+      <div className="p-2 text-xs space-y-1">
+        {BEGINNER_RECIPES.map((recipe) => (
+          <div
+            key={recipe.name}
+            className="p-1 border-b"
+            style={{ borderColor: 'var(--eq-border)', opacity: recipe.skill === selectedSkill ? 1 : 0.5 }}
+          >
+            <div style={{ color: recipe.skill === selectedSkill ? 'var(--eq-gold)' : 'var(--eq-text)' }}>
+              {recipe.skill}: {recipe.name}
+            </div>
+            <div style={{ color: 'var(--eq-text-dim)', fontSize: '10px' }}>{recipe.ingredients}</div>
+          </div>
+        ))}
       </div>
     </div>
   );
