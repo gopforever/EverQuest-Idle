@@ -10,7 +10,7 @@ function ItemTooltipContent({ item }: { item: Item }) {
       <div className="font-bold" style={{ color: item.rarity === 'common' ? '#e8dcc8' : item.rarity === 'uncommon' ? '#3399ff' : item.rarity === 'rare' ? '#aa00ff' : '#ff9900' }}>
         {item.name}
       </div>
-      <div style={{ color: '#9a8870' }}>{item.slot} — {item.type}</div>
+      <div style={{ color: '#9a8870' }}>{item.slot ?? 'No Slot'} — {item.type}</div>
       {item.stats.damage && <div>DMG: {item.stats.damage} DLY: {item.stats.delay}</div>}
       {item.stats.ac && <div>AC: {item.stats.ac}</div>}
       {Object.entries(item.stats)
