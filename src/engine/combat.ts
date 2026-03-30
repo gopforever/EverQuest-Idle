@@ -63,3 +63,18 @@ export function getClassXpModifier(characterClass: CharacterClass): number {
   const hybrids: CharacterClass[] = ['Paladin', 'ShadowKnight', 'Ranger', 'Bard'];
   return hybrids.includes(characterClass) ? 0.6 : 1.0;
 }
+
+// Weapon swing interval in ticks — delay is in EQ tenth-of-second units (delay 25 = 2.5s = 3 ticks)
+// DELAY_UNITS_PER_TICK: 10 delay units = 1 second = 1 tick in this engine
+const DELAY_UNITS_PER_TICK = 10;
+
+export function calcWeaponSwingInterval(delay: number): number {
+  return Math.max(1, Math.ceil(delay / DELAY_UNITS_PER_TICK));
+}
+
+// Offhand hit at 50% of main-hand max, with a small DEX bonus (future dual-wield support)
+export function calcOffhandHit(weaponDamage: number, playerLevel: number, str: number, dex: number): number {
+  const maxHit = Math.floor(calcMeleeMaxHit(weaponDamage, playerLevel, str) * 0.5);
+  const dexBonus = dex > 75 ? Math.floor((dex - 75) / 15) : 0;
+  return Math.max(1, Math.floor(Math.random() * Math.max(1, maxHit + dexBonus)) + 1);
+}

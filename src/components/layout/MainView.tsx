@@ -1,11 +1,18 @@
 import { useGameStore } from '../../store/gameStore';
 import { HpBar } from '../ui/HpBar';
+import { calcWeaponSwingInterval } from '../../engine/combat';
 
 export function MainView() {
   const currentZone = useGameStore((s) => s.currentZone);
   const combat = useGameStore((s) => s.combat);
   const player = useGameStore((s) => s.player);
+  const tickCount = useGameStore((s) => s.tickCount);
   const toggleAutoCombat = useGameStore((s) => s.toggleAutoCombat);
+
+  const weaponDelay = player.gear['Primary']?.stats?.delay ?? 25;
+  const swingInterval = calcWeaponSwingInterval(weaponDelay);
+  const ticksSinceSwing = tickCount - combat.lastSwingTick;
+  const ticksUntilSwing = Math.max(0, swingInterval - ticksSinceSwing);
 
   return (
     <main
@@ -53,9 +60,17 @@ export function MainView() {
               <div className="flex-1">
                 <div className="font-bold text-sm" style={{ color: 'var(--eq-orange)' }}>
                   {combat.currentMonster.name}
+                  {combat.currentMonsterLevel > 0 && (
+                    <span
+                      className="ml-2 text-xs font-normal px-1 rounded"
+                      style={{ backgroundColor: '#2a1f0a', color: 'var(--eq-gold)', border: '1px solid var(--eq-border)' }}
+                    >
+                      Lv{combat.currentMonsterLevel}
+                    </span>
+                  )}
                 </div>
                 <div className="text-xs" style={{ color: 'var(--eq-text-dim)' }}>
-                  Level {Math.floor((combat.currentMonster.levelRange.min + combat.currentMonster.levelRange.max) / 2)} — {combat.currentMonster.type}
+                  {combat.currentMonster.type}
                 </div>
                 <HpBar
                   current={combat.monsterCurrentHp}
@@ -63,6 +78,14 @@ export function MainView() {
                   colorClass="hp"
                   showText
                 />
+                {/* Swing timer — each tick is 1 second, so ticks remaining equals seconds remaining */}
+                {combat.autoAttacking && (
+                  <div className="text-xs mt-1" style={{ color: 'var(--eq-text-dim)' }}>
+                    {ticksUntilSwing === 0
+                      ? 'Swinging...'
+                      : `Next swing in ${ticksUntilSwing}s`}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -81,6 +104,17 @@ export function MainView() {
         {/* XP Bar */}
         <div className="mt-2">
           <HpBar current={player.xp} max={player.xpToNextLevel} label={`XP (Lv ${player.level})`} colorClass="xp" showText />
+        </div>
+
+        {/* Currency & Deaths */}
+        <div className="mt-2 flex gap-3 text-xs" style={{ color: 'var(--eq-text-dim)' }}>
+          <span>
+            {player.currency.pp > 0 && `${player.currency.pp}pp `}
+            {player.currency.gp > 0 && `${player.currency.gp}gp `}
+            {player.currency.sp > 0 && `${player.currency.sp}sp `}
+            {player.currency.cp}cp
+          </span>
+          <span style={{ color: '#a04040' }}>Deaths: {player.deathCount}</span>
         </div>
 
         {/* Auto combat toggle */}
