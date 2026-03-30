@@ -173,6 +173,8 @@ export interface Zone {
   monsters: string[];
   isRaidZone: boolean;
   minGroupSize?: number;
+  minLevel?: number;
+  dungeonLevel?: number;
   connectsTo: string[];
   description: string;
 }

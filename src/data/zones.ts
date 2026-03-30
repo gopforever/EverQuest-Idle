@@ -250,7 +250,7 @@ export const ZONES: Record<string, Zone> = {
     monsters: ['dark_elf_bandit', 'giant_spider', 'zombie', 'dark_elf_necromancer'],
     isRaidZone: false,
     connectsTo: ['west_commonlands', 'east_commonlands', 'neriak_commons', 'lavastorm_mountains'],
-    description: 'A dark, forboding forest. Dark elves and undead make this a dangerous place.',
+    description: 'A dark, foreboding forest. Dark elves and undead make this a dangerous place.',
   },
   neriak_commons: {
     id: 'neriak_commons',
