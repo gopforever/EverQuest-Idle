@@ -46,6 +46,7 @@ function makeGhost(index: number): GhostPlayer {
   const race = GHOST_RACES[index % GHOST_RACES.length];
   const cls = GHOST_CLASSES[index % GHOST_CLASSES.length];
   const personality = GHOST_PERSONALITIES[index % GHOST_PERSONALITIES.length];
+  const defaultStats = makeDefaultStats();
   return {
     id: generateId(),
     name: GHOST_NAMES[index % GHOST_NAMES.length] + (index >= GHOST_NAMES.length ? `_${Math.floor(index / GHOST_NAMES.length)}` : ''),
@@ -53,12 +54,14 @@ function makeGhost(index: number): GhostPlayer {
     class: cls,
     level: 1,
     xp: 0,
+    xpToNextLevel: calcXpToNextLevel(1),
+    currentHp: defaultStats.maxHp,
     personality,
     isOnline: Math.random() > 0.4,
     currentZone: 'qeynos_hills',
     currentActivity: 'Idle',
     gear: {},
-    stats: makeDefaultStats(),
+    stats: defaultStats,
     plat: 0,
     achievements: [],
   };
@@ -102,6 +105,7 @@ function makeInitialPlayer(): PlayerCharacter {
       Defense: 5,
       Offense: 5,
     },
+    deathCount: 0,
   };
 }
 
@@ -112,6 +116,8 @@ const initialCombat: CombatState = {
   lastTickTime: 0,
   autoAttacking: false,
   currentTarget: null,
+  lastSwingTick: 0,
+  currentMonsterLevel: 0,
 };
 
 interface GameStore extends GameState {
@@ -222,7 +228,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       ...entry,
     };
     set((state) => ({
-      combatLog: [...state.combatLog, newEntry].slice(-50),
+      combatLog: [...state.combatLog, newEntry].slice(-200),
     }));
   },
 

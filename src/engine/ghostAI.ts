@@ -234,8 +234,9 @@ export function processGhostTick(
     // Ensure a monster is active
     let cs = ghostCombatMap.get(g.id);
     if (!cs) {
-      cs = spawnMonsterForGhost(g);
-      if (!cs) return g;
+      const spawned = spawnMonsterForGhost(g);
+      if (!spawned) return g;
+      cs = spawned;
       ghostCombatMap.set(g.id, cs);
     }
 

@@ -208,6 +208,7 @@ export interface PlayerCharacter {
   currency: { pp: number; gp: number; sp: number; cp: number };
   currentZone: string;
   skills: Record<string, number>;
+  deathCount: number; // total deaths for stat tracking
 }
 
 export interface GhostPlayer {
@@ -217,6 +218,8 @@ export interface GhostPlayer {
   class: CharacterClass;
   level: number;
   xp: number;
+  xpToNextLevel: number;
+  currentHp: number;
   personality: PersonalityType;
   isOnline: boolean;
   currentZone: string;
@@ -241,6 +244,8 @@ export interface CombatState {
   lastTickTime: number;
   autoAttacking: boolean;
   currentTarget: string | null;
+  lastSwingTick: number;       // tick number of last weapon swing
+  currentMonsterLevel: number; // level of the currently-engaged monster
 }
 
 export interface GameState {
