@@ -7,6 +7,7 @@ import { CombatLog } from './components/layout/CombatLog';
 import { InventoryPanel } from './components/panels/InventoryPanel';
 import { ZonesPanel } from './components/panels/ZonesPanel';
 import { useGameLoop } from './hooks/useGameLoop';
+import { useGameStore } from './store/gameStore';
 
 function PlaceholderPanel({ title }: { title: string }) {
   return (
@@ -28,6 +29,32 @@ function PanelContent({ activePanel }: { activePanel: PanelId }) {
   }
 }
 
+/** Compact status bar showing engine is ticking + key player stats. */
+function StatusBar() {
+  const player = useGameStore((s) => s.player);
+  const tickCount = useGameStore((s) => s.tickCount);
+  const currentZone = useGameStore((s) => s.currentZone);
+
+  const xpPct = player.xpToNextLevel > 0
+    ? Math.floor((player.xp / player.xpToNextLevel) * 100)
+    : 0;
+
+  return (
+    <div
+      className="flex items-center gap-4 px-3 py-1 text-xs border-b"
+      style={{ borderColor: 'var(--eq-border)', backgroundColor: 'var(--eq-panel)', color: 'var(--eq-text-dim)' }}
+    >
+      <span style={{ color: 'var(--eq-gold)' }}>{player.name}</span>
+      <span>Lv {player.level} {player.class}</span>
+      <span>XP: {xpPct}%</span>
+      <span>Zone: <span style={{ color: 'var(--eq-gold)' }}>{currentZone.name}</span></span>
+      <span style={{ marginLeft: 'auto' }}>
+        ⏱ Tick <span style={{ color: 'var(--eq-gold)' }}>#{tickCount}</span>
+      </span>
+    </div>
+  );
+}
+
 export default function App() {
   const [activePanel, setActivePanel] = useState<PanelId>('inventory');
   useGameLoop();
@@ -38,6 +65,7 @@ export default function App() {
       style={{ backgroundColor: 'var(--eq-bg)', color: 'var(--eq-text)', fontFamily: '"Palatino Linotype", Palatino, Georgia, serif' }}
     >
       <Header />
+      <StatusBar />
       <div className="flex flex-1 overflow-hidden">
         {/* Left nav */}
         <LeftPanel activePanel={activePanel} onPanelChange={setActivePanel} />
