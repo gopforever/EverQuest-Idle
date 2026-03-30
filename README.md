@@ -8,6 +8,10 @@ EverQuest Idle combines the deep idle mechanics of **Melvor Idle** with the rich
 
 ## 📌 MASTER DESIGN DOCUMENT
 > This README is the single source of truth for the project. All key design decisions, systems, formulas, and data live here so nothing is ever lost between sessions.
+cd C:\Project1\EverQuest-Idle-main
+npm run dev
+
+http://localhost:5173/
 
 ---
 
