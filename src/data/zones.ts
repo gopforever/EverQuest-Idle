@@ -223,7 +223,7 @@ export const ZONES: Record<string, Zone> = {
     zem: 75,
     monsters: ['orc_pawn', 'orc_centurion', 'goblin', 'decaying_skeleton'],
     isRaidZone: false,
-    connectsTo: ['north_freeport', 'west_freeport', 'east_commonlands', 'befallen', 'nektulos_forest', 'qeynos_hills'],
+    connectsTo: ['qeynos', 'north_freeport', 'west_freeport', 'east_commonlands', 'befallen', 'nektulos_forest', 'qeynos_hills'],
     description: 'Open grasslands crossing the heart of Antonica. A common travel route between cities.',
   },
   east_commonlands: {
