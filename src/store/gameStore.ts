@@ -13,6 +13,7 @@ import type {
 } from '../types';
 import { ZONES, STARTING_ZONE } from '../data/zones';
 import { processTick } from '../engine/tick';
+import { processGhostTick } from '../engine/ghostAI';
 import { saveGameState, loadGameState } from '../engine/save';
 import { calcXpToNextLevel } from '../engine/combat';
 
@@ -197,8 +198,20 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   tick: () => {
     const state = get();
-    const updates = processTick(state);
-    set(updates as Partial<GameStore>);
+    const playerUpdates = processTick(state);
+    // Build an intermediate state so ghostAI can see the player-tick results
+    // (including the incremented tickCount and updated combatLog).
+    const stateAfterPlayer: GameState = {
+      player: playerUpdates.player ?? state.player,
+      combat: playerUpdates.combat ?? state.combat,
+      combatLog: playerUpdates.combatLog ?? state.combatLog,
+      ghosts: state.ghosts,
+      currentZone: playerUpdates.currentZone ?? state.currentZone,
+      tickCount: playerUpdates.tickCount ?? state.tickCount,
+      gameStarted: state.gameStarted,
+    };
+    const ghostUpdates = processGhostTick(stateAfterPlayer, stateAfterPlayer.tickCount);
+    set({ ...playerUpdates, ...ghostUpdates } as Partial<GameStore>);
   },
 
   addCombatLogEntry: (entry) => {
