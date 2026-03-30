@@ -1,26 +1,28 @@
 import { useGameStore } from '../../store/gameStore';
+import { EQPanelHeader } from '../ui/EQPanelHeader';
 import type { CharacterClass } from '../../types';
 
-const NON_CASTERS: CharacterClass[] = ['Warrior', 'Monk', 'Rogue'];
+const NON_CASTERS: CharacterClass[] = ['Warrior', 'Monk', 'Rogue', 'Paladin', 'ShadowKnight', 'Ranger'];
 
 function SpellGem({ index }: { index: number }) {
   return (
     <div
-      title={`Spell Gem ${index + 1} — Empty`}
+      title={`Gem ${index + 1} — Empty`}
       style={{
-        width: '40px',
-        height: '40px',
+        width: '44px',
+        height: '44px',
         backgroundColor: '#1a1510',
         border: '1px dashed var(--eq-border)',
         borderRadius: '3px',
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         fontSize: '10px',
         color: 'var(--eq-text-dim)',
       }}
     >
-      {index + 1}
+      <div style={{ fontSize: '9px', color: 'var(--eq-text-dim)' }}>Gem {index + 1}</div>
     </div>
   );
 }
@@ -35,7 +37,7 @@ export function SpellsPanel() {
         style={{ color: 'var(--eq-text-dim)' }}
       >
         <div className="text-center p-4 text-xs italic">
-          This class does not cast spells.
+          Your class does not use spells.
         </div>
       </div>
     );
@@ -46,12 +48,7 @@ export function SpellsPanel() {
   return (
     <div className="flex-1 overflow-y-auto" style={{ color: 'var(--eq-text)' }}>
       {/* Spell gems */}
-      <div
-        className="text-xs font-bold text-center py-1"
-        style={{ backgroundColor: '#2a1f0a', color: 'var(--eq-gold)', border: '1px solid var(--eq-border)' }}
-      >
-        MEMORIZED SPELLS
-      </div>
+      <EQPanelHeader title="MEMORIZED SPELLS" />
       <div className="flex flex-wrap gap-2 p-3 justify-center">
         {Array.from({ length: 8 }, (_, i) => (
           <SpellGem key={i} index={i} />
@@ -81,12 +78,7 @@ export function SpellsPanel() {
       </div>
 
       {/* Spell book */}
-      <div
-        className="text-xs font-bold text-center py-1"
-        style={{ backgroundColor: '#2a1f0a', color: 'var(--eq-gold)', border: '1px solid var(--eq-border)' }}
-      >
-        SPELL BOOK
-      </div>
+      <EQPanelHeader title="SPELL BOOK" />
       <div className="p-3 text-xs text-center" style={{ color: 'var(--eq-text-dim)' }}>
         No spells known. Visit a spell vendor or trainer.
       </div>

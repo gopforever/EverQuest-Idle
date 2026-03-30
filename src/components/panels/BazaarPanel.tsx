@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { EQPanelHeader } from '../ui/EQPanelHeader';
 
 type BazaarTab = 'browse' | 'listings';
 
@@ -21,6 +22,16 @@ const STUB_LISTINGS: BazaarListing[] = [
   { id: 8, seller: 'Dorn (Ghost)', item: 'Orc Scalp', price: '1pp', qty: 50 },
   { id: 9, seller: 'Ysvaine (Ghost)', item: 'Words of Cazic-Thule', price: '35pp', qty: 3 },
   { id: 10, seller: 'Brak (Ghost)', item: 'Giant Snake Rattle', price: '15pp', qty: 5 },
+  { id: 11, seller: 'Talindra (Ghost)', item: 'Rubicite Breastplate', price: '3500pp', qty: 1 },
+  { id: 12, seller: 'Grimtooth (Ghost)', item: 'Stein of Moggok', price: '150pp', qty: 1 },
+  { id: 13, seller: 'Moonwhisper (Ghost)', item: 'Spiderling Silk', price: '1pp', qty: 40 },
+  { id: 14, seller: 'Shadowblade (Ghost)', item: 'Mithril Two-Handed Sword', price: '500pp', qty: 1 },
+  { id: 15, seller: 'Ironpaw (Ghost)', item: 'Lizard Meat', price: '1gp', qty: 20 },
+  { id: 16, seller: 'Frostweave (Ghost)', item: 'Ice Crystal Staff', price: '220pp', qty: 1 },
+  { id: 17, seller: 'Stormcaller (Ghost)', item: 'Bat Wing', price: '1gp', qty: 100 },
+  { id: 18, seller: 'Nightshade (Ghost)', item: 'Black Sapphire', price: '900pp', qty: 2 },
+  { id: 19, seller: 'Ashveil (Ghost)', item: 'Peridot', price: '80pp', qty: 5 },
+  { id: 20, seller: 'Windrunner (Ghost)', item: 'Mithril Vambraces', price: '350pp', qty: 1 },
 ];
 
 export function BazaarPanel() {
@@ -59,12 +70,7 @@ export function BazaarPanel() {
 
       {activeTab === 'browse' && (
         <div>
-          <div
-            className="text-xs font-bold text-center py-1"
-            style={{ backgroundColor: '#2a1f0a', color: 'var(--eq-gold)', border: '1px solid var(--eq-border)' }}
-          >
-            BAZAAR — BROWSE
-          </div>
+          <EQPanelHeader title="BAZAAR — BROWSE" />
           <div className="p-2">
             <input
               type="text"
@@ -107,7 +113,7 @@ export function BazaarPanel() {
                         style={{
                           backgroundColor: 'var(--eq-panel)',
                           border: '1px solid var(--eq-border)',
-                          color: 'var(--eq-text)',
+                          color: 'var(--eq-gold)',
                           padding: '1px 5px',
                           cursor: 'pointer',
                           fontSize: '10px',
@@ -115,7 +121,7 @@ export function BazaarPanel() {
                           borderRadius: '1px',
                         }}
                       >
-                        Buy
+                        [BUY]
                       </button>
                     </td>
                   </tr>
@@ -133,14 +139,26 @@ export function BazaarPanel() {
 
       {activeTab === 'listings' && (
         <div>
-          <div
-            className="text-xs font-bold text-center py-1"
-            style={{ backgroundColor: '#2a1f0a', color: 'var(--eq-gold)', border: '1px solid var(--eq-border)' }}
-          >
-            MY LISTINGS
-          </div>
-          <div className="p-4 text-center text-xs" style={{ color: 'var(--eq-text-dim)' }}>
-            You have no active listings. Visit the Bazaar zone to set up a trader.
+          <EQPanelHeader title="MY LISTINGS" />
+          <div className="p-4 text-center">
+            <div className="text-xs mb-4" style={{ color: 'var(--eq-text-dim)' }}>
+              You have no active listings.
+            </div>
+            <button
+              onClick={() => undefined}
+              style={{
+                backgroundColor: '#2a1f0a',
+                border: '1px solid var(--eq-border)',
+                color: 'var(--eq-gold)',
+                padding: '4px 14px',
+                cursor: 'pointer',
+                fontSize: '12px',
+                fontFamily: 'inherit',
+                borderRadius: '2px',
+              }}
+            >
+              [POST LISTING]
+            </button>
           </div>
         </div>
       )}
