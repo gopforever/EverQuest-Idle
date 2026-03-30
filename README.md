@@ -7,7 +7,7 @@ EverQuest Idle combines the deep idle mechanics of **Melvor Idle** with the rich
 ---
 
 ## 📌 MASTER DESIGN DOCUMENT
-> This README is the single source of truth for the project. All key design decisions, systems, and data live here so nothing is ever lost.
+> This README is the single source of truth for the project. All key design decisions, systems, formulas, and data live here so nothing is ever lost between sessions.
 
 ---
 
@@ -21,18 +21,306 @@ EverQuest Idle combines the deep idle mechanics of **Melvor Idle** with the rich
 
 ---
 
-## 👻 Ghost Players (NPC Simulation Engine)
+## 🛠️ TECH STACK DECISION (FINAL)
 
-One of the most unique systems in EverQuest Idle is the **Ghost Player Engine** — a population of 100 simulated players who inhabit the world alongside the real player.
+### **React + TypeScript + Vite** (Browser-Based)
+
+**Why this stack:**
+- Runs in any browser — zero install for players, shareable via URL
+- React's component model is perfect for an EQ-style UI (each panel = a component)
+- TypeScript prevents data bugs — critical for complex combat math, ghost engine, and item data
+- Vite gives instant hot-reload for fast development
+- Huge ecosystem — tooltip libraries, state management, animation, all available
+- You rely on Copilot for all code — TypeScript/React is the best-supported language for AI-assisted coding
+- Canvas/WebGL can be embedded inside React if pixel-art rendering is needed for sprites
+- Easy to add a backend later (Node.js / Supabase) for persistence
+
+**Supporting Libraries (planned):**
+| Library | Purpose |
+|---------|---------|
+| `zustand` | Global game state (player, ghosts, economy, world) |
+| `react-tooltip` or custom | Rich item/stat tooltips (like EQ item cards) |
+| `framer-motion` | UI animations (panel open/close, combat hits) |
+| `tailwindcss` | Rapid UI styling, dark stone EQ theme |
+| `localforage` | Persistent save state in browser |
+| `howler.js` | Sound effects (optional, for EQ ambient sounds) |
+
+**File Structure (planned):**
+```
+/src
+  /components       ← UI panels (Inventory, Group, Combat, Bazaar, etc.)
+  /engine           ← Core tick engine, combat math, XP engine
+  /data             ← monsters.ts, items.ts, zones.ts, spells.ts
+  /ghost            ← Ghost player AI engine
+  /hooks            ← Custom React hooks (useGameLoop, useCombat, etc.)
+  /store            ← Zustand game state
+  /assets           ← Sprites, icons, sounds
+    /sprites
+      /monsters     ← {monster_id}.png (placeholder.png as fallback)
+      /items        ← {item_id}.png (placeholder.png as fallback)
+```
+
+---
+
+## 🖥️ UI DESIGN SPECIFICATION
+
+### Core Philosophy
+- **Inspired by the original EverQuest UI** — stone/parchment aesthetic, panel-based layout
+- **Modernized** — crisp, readable, responsive, fully clickable, no confusion
+- **Everything accessible** — zero hidden menus, all systems visible from a single screen
+- **Idle-first** — the game plays itself; the UI shows you what is happening and lets you redirect
+
+### Main Screen Layout
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  [HELP] [OPTIONS] [PERSONA]          ⚔️ EverQuest Idle              │
+├───────────────┬─────────────────────────────┬───────────────────────┤
+│               │                             │  GROUP WINDOW         │
+│  LEFT PANEL   │     MAIN VIEW PANEL         │  [You]   HP ████░     │
+│               │                             │  [Ghost1] HP ███      │
+│  [INVENTORY]  │  Zone Art / Combat View     │  [Ghost2] HP ██       │
+│  [SKILLS]     │  (idle animation,           │  [Ghost3] HP ████     │
+│  [SPELLS]     │   monster sprites,          │  [Ghost4] HP ██       │
+│  [ZONES]      │   combat log scrolling)     │  [Ghost5] HP ███      │
+│  [TRADESKILL] │                             │                       │
+│  [BAZAAR]     │                             │  CURRENT TARGET       │
+│  [GUILD]      ├─────────────────────────────│  [Monster Name]       │
+│  [ACHIEVE]    │  COMBAT LOG                 │  HP: ████░░ (73%)     │
+│  [WHO]        │  scrolling text output      │                       │
+│               │  (EQ parchment style)       │  [ABILITIES]          │
+│               │                             │  [COMBAT]             │
+└───────────────┴─────────────────────────────┴───────────────────────┘
+```
+
+### Panel Descriptions
+
+| Panel | Contents |
+|-------|----------|
+| **Inventory** | Paper doll with all 21 EQ gear slots, bags, stats (STR/STA/AGI/DEX/WIS/INT/CHA/HP/MANA), weight, currency (pp/gp/sp/cp) |
+| **Skills** | All class skills with progress bars, tradeskill levels |
+| **Spells** | Spell gem slots (8 memorized), spell book, rest/med status |
+| **Zones** | World map by continent, zone level range, dungeon levels |
+| **Tradeskill** | Combine interface, recipe browser, skill tracker |
+| **Bazaar** | Live market — list items, search, buy from ghost players |
+| **Guild** | Guild roster, ranks, notes |
+| **Achievements** | Full achievement browser |
+| **Who** | Live who list — ghost players online, their zone, level, class |
+
+### Group Window (Human + Ghost Players)
+
+When grouped with ghost players:
+```
+┌─────────────────────────────────────────────────────┐
+│  GROUP                                    [DISBAND]  │
+├──────────┬──────┬───────┬──────┬────────────────────┤
+│ Name     │ Lvl  │ Class │ HP   │ Mana / Status      │
+├──────────┼──────┼───────┼──────┼────────────────────┤
+│ [YOU] ★  │  35  │ WAR   │ █████│ ── (melee)         │
+│ Taelyra  │  34  │ CLR   │ ████░│ ████ [Healing...]  │
+│ Vrenox   │  36  │ ENC   │ ███░░│ ███░ [Slowing...]  │
+│ Brimholt │  33  │ MAG   │ ████ │ ██░░ [Nuking...]   │
+│ Saelindra│  35  │ DRU   │ ████ │ ████ [SoW up]      │
+│ Krothus  │  34  │ WAR   │ ████ │ ── (offtank)       │
+└──────────┴──────┴───────┴──────┴────────────────────┘
+  [INVITE]  [KICK]  [MAKE LEADER]  [LOOT SETTINGS]
+```
+
+- Each ghost member shows: Name, Level, Class abbreviation, HP bar, Mana bar, current action
+- Click any ghost member → opens their character sheet (read-only, shows gear + stats)
+- Ghost actions shown in real-time: "Healing...", "Slowing...", "Nuking...", "Looting..."
+- Color-coded HP bars: green >75%, yellow >50%, orange >25%, red = critical
+- Ghost players can be invited from the **Who** window or encounter you in a zone
+
+---
+
+## 🖱️ TOOLTIP SYSTEM (MOUSEOVER)
+
+Every interactive element has a rich mouseover tooltip. Nothing requires clicking to get information.
+
+### Item Tooltip (EQ-accurate)
+```
+┌──────────────────────────────────────┐
+│ [item icon]  Elegant Defiant Boots   │  item name (color by rarity)
+│              Magic, Attunable        │  item flags
+│ Class: DRU MNK BST                   │
+│ Race:  HUM BAR ELF HEF ...           │
+│ Slot:  Feet                          │
+├──────────────────────────────────────┤
+│ Size: MEDIUM    AC:       33         │
+│ Weight: 0.9     HP:      236         │
+│ Rec Level: 80   Mana:    277         │
+│ Req Level: 70   End:     244         │
+├──────────────────────────────────────┤
+│ Strength:    24   Magic:      19     │
+│ Stamina:     33   Fire:       18     │
+│ Intelligence: 9   Cold:       24     │
+│ Wisdom:      28   Disease:    19     │
+│ Agility:     10   Poison:     10     │
+│ Dexterity:   25   Attack:     16     │
+│ Charisma:    15   HP Regen:    4     │
+│                   Mana Regen:  4     │
+│                   Avoidance:   3     │
+├──────────────────────────────────────┤
+│ Augment Slot 1 (General): empty      │
+│ Augment Slot 2 (Energeiac): empty    │
+├──────────────────────────────────────┤
+│ Focus Effect: Jayruk's Celerity      │
+│ Reduces cast time of beneficial      │
+│ spells by 15%. Decays over lv 85.    │
+└──────────────────────────────────────┘
+```
+
+### Other Tooltip Types
+| Hover Target | Tooltip Shows |
+|-------------|---------------|
+| **Monster** | Level, type, aggro/social, zone, estimated HP, known loot |
+| **Ghost Player** | Name, race, class, level, personality type, current activity, gear score |
+| **Stat (STR, WIS, etc.)** | What the stat does, current value, gear contribution breakdown |
+| **Skill** | Skill name, current level, max level, what it affects |
+| **Spell** | Full spell card: mana cost, cast time, duration, resist type, effect |
+| **Zone** | Zone name, continent, level range, notable mobs, dungeon type |
+| **Achievement** | Full description, requirements, progress, point value |
+| **Currency** | PP/GP/SP/CP conversion rates |
+| **HP/Mana bar** | Exact current/max values, regen rate |
+
+---
+
+## 🏆 ACHIEVEMENTS SYSTEM
+
+### Player Achievements
+- **General** — Reach level milestones, kill milestones, play time
+- **Combat** — Kill X of each monster type, defeat raid bosses
+- **Tradeskill** — Max each tradeskill, craft X items
+- **Exploration** — Visit every zone, every dungeon level
+- **Progression** — Complete quest lines, unlock planes
+- **Conquest** — Clear raid zones, defeat named mobs
+- **Social** — Group with ghost players, join guild
+- **Economy** — Buy/sell on Bazaar, accumulate wealth
+
+### Ghost Player Achievements
+- Ghost players also earn achievements — shown on their character sheet
+- Achievements drive ghost reputation (e.g., "Dawnfire has slain Lord Nagafen" → Famous Raider)
+- Leaderboard: Top ghost players by achievement points
+
+### Achievement Data Structure
+```typescript
+interface Achievement {
+  id: string;
+  name: string;
+  category: 'general' | 'combat' | 'tradeskill' | 'exploration' | 'conquest' | 'social' | 'economy';
+  description: string;
+  points: number;
+  requirements: AchievementRequirement[];
+  icon: string;
+  completed: boolean;
+  completedAt?: Date;
+  isSecret?: boolean;
+}
+```
+
+---
+
+## ⚔️ COMBAT MATH FORMULAS (EverQuest Accurate)
+
+### Melee Damage Formula
+```
+Max Hit = (Weapon Damage × Player Level) / 5
+Actual Hit = random(1, Max Hit) + minor STR Bonus
+```
+
+**Examples:**
+- Level 10, Weapon Damage 6 → Max Hit = (6 × 10) / 5 = **12**
+- Level 50, Weapon Damage 20 → Max Hit = (20 × 50) / 5 = **200**
+
+**STR Bonus:** Minimal below STR 75; increases above 100+
+
+### Melee Hit Chance
+```
+Hit Chance = Base + (Offense Skill - Defense Skill) modifier
+```
+- Offense skill and weapon skill affect hit chance, not damage per hit
+- Dual Wield and Double Attack add additional swings per round
+
+### Spell Damage
+```
+Spell Damage = Base Spell Damage ± ~10% variance
+Resist Check: Roll = random(0, 200) - (Caster Level - Target Level) × 5
+If Roll > Target Save vs [Type]: RESISTED
+```
+
+### Armor Class (AC) Mitigation
+```
+Mitigated Damage = Incoming Damage × (1 - AC Reduction Factor)
+AC Reduction Factor = AC / (AC + 400 + Level × 6)
+```
+Higher AC = more mitigation with diminishing returns.
+
+### NPC Damage Formula
+```
+NPC Max Hit ≈ NPC Level × 2  (scales by mob type and zone tier)
+```
+
+---
+
+## 📈 EXPERIENCE FORMULA (EverQuest Accurate)
+
+### Base XP per Kill
+```
+XP = (NPC Level × NPC Level × ZEM) / (5 × Group Size)
+```
+
+| Variable | Description |
+|----------|-------------|
+| `NPC Level` | Level of the mob killed |
+| `ZEM` | Zone Experience Modifier (typically 75–150) |
+| `Group Size` | Number of players on the mob's hate list |
+
+### ZEM Values (vanilla)
+| Zone | ZEM |
+|------|-----|
+| East Karana (outdoor) | 75 |
+| Blackburrow | 120 |
+| Cazic-Thule | 130 |
+| Lower Guk | 150 |
+| Plane of Fear | 150 |
+
+### Class XP Modifiers
+| Class | XP Modifier |
+|-------|------------|
+| Warrior, Monk, Rogue, Wizard, Mage, Enchanter, Necromancer, Cleric, Druid, Shaman | ×1.00 |
+| Paladin, Shadow Knight, Ranger, Bard | ×0.60 (40% hybrid penalty) |
+
+### Group XP Split
+```
+Each member receives: Total XP / Group Size
+```
+
+### Death Penalty
+```
+XP Lost = Total XP to next level × 0.10 (10%)
+Full Resurrection: recovers 96% of lost XP
+Partial Resurrection: recovers 75% of lost XP
+```
+
+### Level XP Curve (approximate)
+```
+XP to Level N ≈ 1000 × N² × (1 + N × 0.1)
+```
+Steep curve — Level 60 (cap) requires roughly as much XP as all previous levels combined.
+
+---
+
+## 👻 Ghost Players (NPC Simulation Engine)
 
 ### Core Concept
 - **100 Ghost Players** to start, each treated as a full player character
 - Each starts at **Level 1** and grows organically over time
-- They are **not bots** — they are simulated personalities with persistent state
+- They are **not bots** — simulated personalities with persistent state
+- Ghost players use the **same combat math and XP formulas** as the real player
 - The real player and ghost players share the same world, economy, and systems
 
 ### Ghost Player Behaviors
-Ghost players have randomized but persistent **personality profiles** that determine their playstyle:
 
 | Personality Type | Behavior |
 |-----------------|----------|
@@ -43,7 +331,7 @@ Ghost players have randomized but persistent **personality profiles** that deter
 | **The Tank** | Gears defensively, seeks groups, joins raid forces |
 | **The Healer** | Cleric/Druid/Shaman builds; keeps groups alive |
 | **The Loner** | Solos everything; avoids groups |
-| **The Social** | Groups constantly; may not be the best geared but always online |
+| **The Social** | Groups constantly; may not be best geared but always online |
 | **The AFK Farmer** | Online but idle; grinds easy mobs passively |
 
 ### Ghost Player Systems (Complex Engine Required)
@@ -54,9 +342,35 @@ Ghost players have randomized but persistent **personality profiles** that deter
 - [ ] **Group Formation** — ghosts seek groups based on personality and zone level
 - [ ] **Tradeskill Engine** — some ghosts craft and list items for sale
 - [ ] **Dynamic Names & Races** — each ghost gets a unique EQ-style name, race, and class
-- [ ] **Ghost Memory** — remembers what zones they've been to, what they've killed
+- [ ] **Ghost Memory** — remembers zones visited, kills made
 - [ ] **Death & Recovery** — ghosts die, lose XP, corpse run, recover
-- [ ] **Reputation** — ghosts build server reputation over time (Known Tank, Famous Crafter, etc.)
+- [ ] **Reputation** — ghosts build server reputation over time
+- [ ] **Achievements** — ghosts earn achievements, visible on their character sheet
+
+### Ghost Player Data Structure
+```typescript
+interface GhostPlayer {
+  id: string;
+  name: string;
+  race: Race;
+  class: CharacterClass;
+  level: number;
+  xp: number;
+  personality: PersonalityType;
+  schedule: PlaySchedule;
+  isOnline: boolean;
+  currentZone: string;
+  currentActivity: string;
+  gear: EquipmentSlots;
+  stats: CharacterStats;
+  tradeskills: TradeskillLevels;
+  memory: GhostMemory;
+  reputation: ReputationScore;
+  achievements: string[];
+  plat: number;
+  gold: number;
+}
+```
 
 ---
 
@@ -68,12 +382,6 @@ Ghost players have randomized but persistent **personality profiles** that deter
 | **Hybrid** | Paladin, Shadow Knight, Ranger, Bard |
 | **Priest** | Cleric, Druid, Shaman |
 | **Pure Caster** | Wizard, Magician, Enchanter, Necromancer |
-
-Each class will have:
-- Unique idle skill tree
-- Class-specific abilities that trigger automatically
-- Gear progression tied to class
-- Ghost players can be any class
 
 ---
 
@@ -91,27 +399,47 @@ Erudin, Erud's Crossing, Toxxulia Forest, Paineel
 ### Dungeons & Planes
 Upper Guk, Lower Guk, Solusek's Eye (Sol A), Nagafen's Lair (Sol B), Cazic-Thule, Splitpaw Lair, Plane of Fear, Plane of Hate, Plane of Sky
 
+### Zone Data Structure
+```typescript
+interface Zone {
+  id: string;
+  name: string;
+  continent: 'Antonica' | 'Faydwer' | 'Odus' | 'Planes';
+  type: 'outdoor' | 'dungeon' | 'city' | 'raid' | 'plane';
+  levelRange: { min: number; max: number };
+  zem: number;
+  monsters: string[];
+  isRaidZone: boolean;
+  minGroupSize?: number;
+  connectsTo: string[];
+}
+```
+
 ---
 
 ## 👾 Monsters
 
-> All monsters from vanilla EverQuest will be included. Sprite sheets will be added progressively. All monsters have a sprite placeholder until art is added.
+### Monster Data Structure
+```typescript
+interface Monster {
+  id: string;
+  name: string;
+  zones: string[];
+  levelRange: { min: number; max: number };
+  hp: number;
+  damageRange: { min: number; max: number };
+  lootTable: LootEntry[];
+  xpReward: number;
+  sprite: string;
+  type: 'humanoid' | 'animal' | 'undead' | 'magical' | 'plant' | 'construct';
+  aggro: boolean;
+  social: boolean;
+  resistances?: ResistProfile;
+  specialAbilities?: string[];
+}
+```
 
-### Monster Data Structure (per monster)
-Each monster entry stores:
-- `name` — display name
-- `zone` — which zone(s) it spawns in
-- `level_range` — min/max level
-- `hp` — hit points
-- `damage_range` — min/max damage per hit
-- `loot_table` — array of possible drops with % chance
-- `xp_reward` — base XP on kill
-- `sprite` — path to sprite (placeholder until sheet added)
-- `type` — (humanoid, animal, undead, magical, etc.)
-- `aggro` — true/false
-- `social` — true/false (calls friends when attacked)
-
-### Confirmed Monsters (Sprite Sheet 1) ![image1](image1)
+### Confirmed Monsters (Sprite Sheet 1)
 
 #### Gnoll Family (Blackburrow / Splitpaw / Qeynos Hills)
 | Monster | Notes |
@@ -150,46 +478,58 @@ Each monster entry stores:
 
 ## 🎒 Items
 
-> All items from vanilla EverQuest will be included. Every item has a data entry. Sprite placeholders used until art is finalized.
-
-### Item Data Structure (per item)
-- `name` — display name
-- `slot` — (head, chest, legs, feet, hands, wrists, back, neck, fingers, ears, waist, primary, secondary, range, ammo)
-- `type` — (armor, weapon, shield, jewelry, tradeskill material, food, drink, quest item, spell scroll, container)
-- `stats` — AC, STR, STA, AGI, DEX, WIS, INT, CHA, HP, MANA, SV FIRE/COLD/MAGIC/DISEASE/POISON
-- `weight` — item weight
-- `classes` — which classes can use it
-- `races` — which races can use it
-- `lore` — true/false (no drop duplicate)
-- `no_drop` — true/false
-- `stackable` — true/false
-- `stack_size` — max stack
-- `value` — vendor sell price in copper
-- `source` — monster drop, tradeskill, vendor, quest reward
-- `sprite` — path to sprite placeholder
+### Item Data Structure
+```typescript
+interface Item {
+  id: string;
+  name: string;
+  slot: EquipSlot;
+  type: ItemType;
+  rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+  stats: {
+    ac?: number; hp?: number; mana?: number; endurance?: number;
+    str?: number; sta?: number; agi?: number; dex?: number;
+    wis?: number; int?: number; cha?: number;
+    svMagic?: number; svFire?: number; svCold?: number;
+    svDisease?: number; svPoison?: number;
+    attack?: number; hpRegen?: number; manaRegen?: number;
+    avoidance?: number; spellDmg?: number; dotShield?: number;
+  };
+  weight: number;
+  classes: CharacterClass[];
+  races: Race[];
+  lore: boolean;
+  noDrop: boolean;
+  stackable: boolean;
+  stackSize?: number;
+  value: number;
+  source: 'drop' | 'tradeskill' | 'vendor' | 'quest';
+  sprite: string;
+  focusEffect?: FocusEffect;
+  augmentSlots?: AugmentSlot[];
+  recLevel?: number;
+  reqLevel?: number;
+}
+```
 
 ---
 
 ## 🎨 Art & Sprites
 
-### Sprite System
-- All monsters and items use a **placeholder sprite** system until real art is added
-- Sprite sheets are added progressively — the engine must support swapping placeholders for real sprites without code changes
-- Each entity has a `sprite` field pointing to its asset path
+### Placeholder Convention
+```
+/assets/sprites/monsters/placeholder.png    ← default monster placeholder
+/assets/sprites/items/placeholder.png       ← default item placeholder
+/assets/sprites/monsters/{monster_id}.png   ← real sprite when available
+/assets/sprites/items/{item_id}.png         ← real sprite when available
+/assets/sprites/ui/                         ← UI chrome, panel borders, buttons
+```
 
 ### Sprite Sheets (Tracking)
 | Sheet | Contents | Status |
 |-------|----------|--------|
-| Sheet 1 | Gnolls, Razorgill, Giant Plague Rat, Giant Snake, Bear, Splitpaw variants | ✅ Received |
-| Sheet 2+ | TBD — added as created | 🔲 Pending |
-
-### Placeholder Convention
-```
-/assets/sprites/monsters/placeholder.png   ← default monster placeholder
-/assets/sprites/items/placeholder.png      ← default item placeholder
-/assets/sprites/monsters/{monster_id}.png  ← real sprite when available
-/assets/sprites/items/{item_id}.png        ← real sprite when available
-```
+| Sheet 1 | Gnolls (all variants), Razorgill x2, Giant Plague Rat, Giant Snake, Bear, Splitpaw Refugee, Splitpaw Commander | ✅ Received |
+| Sheet 2+ | TBD | 🔲 Pending |
 
 ---
 
@@ -211,65 +551,70 @@ Each monster entry stores:
 
 ## 💰 Economy — The Bazaar
 
-- **Ghost players actively participate** in the Bazaar economy
-- Players and ghosts list items for sale
+- Ghost players actively participate in the Bazaar economy
 - Supply and demand fluctuate based on ghost player activity
 - Rare drops become valuable; common drops cheapen over time
-- Tradeskiller ghosts craft and list items driving down prices
-- Grinder ghosts flood the market with monster drops
+- Currency: Platinum (pp), Gold (gp), Silver (sp), Copper (cp) — 10:1 ratio each tier
 
 ---
 
 ## 🗓️ Roadmap
 
 ### Phase 1 — Foundation
-- [ ] Core idle engine (tick system, XP, resources)
+- [ ] Project scaffolding (React + TypeScript + Vite)
+- [ ] Core tick engine (game loop, time-based progression)
 - [ ] Placeholder sprite system
-- [ ] Monster data structure & first monster entries (Gnolls etc.)
-- [ ] Item data structure & first item entries
+- [ ] Monster data & first entries (Gnolls from Sheet 1)
+- [ ] Item data structure & first entries
 
-### Phase 2 — Classes & Combat
-- [ ] All 14 vanilla classes implemented
-- [ ] Auto-combat system (Melvor-style)
-- [ ] Class-specific abilities
+### Phase 2 — UI Shell
+- [ ] Main screen layout (EQ stone/parchment theme)
+- [ ] Inventory panel with paper doll (all 21 gear slots)
+- [ ] Rich tooltip system (item cards, stat breakdowns)
+- [ ] Combat log panel (scrolling text output)
 
-### Phase 3 — World
-- [ ] All vanilla zones implemented
+### Phase 3 — Classes & Combat
+- [ ] All 14 vanilla classes with correct XP modifiers
+- [ ] Auto-combat system with EQ melee damage formula
+- [ ] Spell system with EQ resist formula
+- [ ] AC mitigation formula
+
+### Phase 4 — World
+- [ ] All vanilla zones with ZEM values
 - [ ] Zone-appropriate monster tables
-- [ ] Zone progression (level gates)
+- [ ] Zone map/navigation panel
 
-### Phase 4 — Ghost Player Engine (MVP)
-- [ ] 100 ghost players generated
-- [ ] Login/logout simulation
-- [ ] Basic personality system
-- [ ] Ghost progression (leveling)
+### Phase 5 — Ghost Player Engine (MVP)
+- [ ] 100 ghost players with unique names, races, classes, personalities
+- [ ] Login/logout simulation engine
+- [ ] Ghost progression (leveling, gear)
+- [ ] Group window with real-time ghost status
 
-### Phase 5 — Economy & Tradeskills
+### Phase 6 — Economy & Tradeskills
 - [ ] All vanilla tradeskills
-- [ ] Bazaar system
+- [ ] Bazaar system (list, search, buy)
 - [ ] Ghost player economy participation
 
-### Phase 6 — Ghost Player Engine (Full)
+### Phase 7 — Achievements
+- [ ] Full achievement browser (EQ-style UI)
+- [ ] Player achievements (all categories)
+- [ ] Ghost player achievements + leaderboard
+
+### Phase 8 — Ghost Player Engine (Full)
 - [ ] Full personality behaviors
-- [ ] Ghost grouping system
+- [ ] Ghost grouping and raid formation system
 - [ ] Ghost reputation system
-- [ ] Ghost memory & history
+- [ ] Ghost memory and history
 
-### Phase 7 — Polish & Depth
-- [ ] All vanilla monsters with loot tables
+### Phase 9 — Polish & Depth
+- [ ] All vanilla monsters with complete loot tables
 - [ ] All vanilla items
-- [ ] Quests (major quest lines)
+- [ ] Major quest lines
 
-### Phase 8 — Ruins of Kunark (Expansion 1)
-- [ ] New zones, monsters, items, classes (Iksar)
+### Phase 10 — Ruins of Kunark (Expansion 1)
+- [ ] New zones, monsters, items, Iksar race
 
-### Phase 9+ — Future Expansions...
-
----
-
-## 🛠️ Tech Stack
-
-> *(To be finalized — options: TypeScript + React for browser-based, or Godot for visual upgrade path)*
+### Phase 11+ — Future Expansions...
 
 ---
 
