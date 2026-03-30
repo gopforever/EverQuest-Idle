@@ -240,6 +240,7 @@ export interface CombatState {
   monsterCurrentHp: number;
   lastTickTime: number;
   autoAttacking: boolean;
+  currentTarget: string | null;
 }
 
 export interface GameState {

@@ -110,6 +110,7 @@ const initialCombat: CombatState = {
   monsterCurrentHp: 0,
   lastTickTime: 0,
   autoAttacking: false,
+  currentTarget: null,
 };
 
 interface GameStore extends GameState {
@@ -123,6 +124,14 @@ interface GameStore extends GameState {
   resetGame: () => void;
   saveGame: () => void;
   loadGame: () => void;
+  // Required actions per spec
+  gainXP: (amount: number) => void;
+  levelUp: () => void;
+  takeDamage: (amount: number) => void;
+  heal: (amount: number) => void;
+  moveToZone: (zoneId: string) => void;
+  setCurrentTarget: (monsterId: string | null) => void;
+  incrementTick: () => void;
 }
 
 const initialGhosts = Array.from({ length: 100 }, (_, i) => makeGhost(i));
@@ -251,5 +260,56 @@ export const useGameStore = create<GameStore>((set, get) => ({
         ...saved,
       }));
     });
+  },
+
+  // ── Spec-required actions ─────────────────────────────────────────────────
+
+  gainXP: (amount: number) => {
+    set((state) => {
+      let { xp, level, xpToNextLevel } = state.player;
+      xp += amount;
+      while (xp >= xpToNextLevel && level < 60) {
+        xp -= xpToNextLevel;
+        level++;
+        xpToNextLevel = calcXpToNextLevel(level);
+      }
+      return { player: { ...state.player, xp, level, xpToNextLevel } };
+    });
+  },
+
+  levelUp: () => {
+    set((state) => {
+      const newLevel = Math.min(60, state.player.level + 1);
+      const newXpToNext = calcXpToNextLevel(newLevel);
+      return { player: { ...state.player, level: newLevel, xp: 0, xpToNextLevel: newXpToNext } };
+    });
+  },
+
+  takeDamage: (amount: number) => {
+    set((state) => {
+      const newHp = Math.max(0, state.player.stats.hp - amount);
+      return { player: { ...state.player, stats: { ...state.player.stats, hp: newHp } } };
+    });
+  },
+
+  heal: (amount: number) => {
+    set((state) => {
+      const newHp = Math.min(state.player.stats.maxHp, state.player.stats.hp + amount);
+      return { player: { ...state.player, stats: { ...state.player.stats, hp: newHp } } };
+    });
+  },
+
+  moveToZone: (zoneId: string) => {
+    get().changeZone(zoneId);
+  },
+
+  setCurrentTarget: (monsterId: string | null) => {
+    set((state) => ({
+      combat: { ...state.combat, currentTarget: monsterId },
+    }));
+  },
+
+  incrementTick: () => {
+    set((state) => ({ tickCount: state.tickCount + 1 }));
   },
 }));
