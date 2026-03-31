@@ -140,7 +140,7 @@ export function processTick(state: GameState): Partial<GameState> {
   const canSwing = tickCount - combat.lastSwingTick >= swingInterval;
 
   const weaponDamage = player.gear['Primary']?.stats?.damage ?? 3;
-  const offenseSkill = player.skills['1HSlash'] ?? player.level * 2;
+  const offenseSkill = player.skills['1H Slashing'] ?? player.level * 2;
   // Use the stored monster level for a consistent fight (set at spawn time)
   const npcLevel = currentMonsterLevel;
   const defenseSkill = npcLevel * 2;
@@ -180,7 +180,7 @@ export function processTick(state: GameState): Partial<GameState> {
 
       if (gCanSwing) {
         groupGhostLastSwing.set(g.id, tickCount);
-        const gOffense = g.skills['1HSlash'] ?? g.level * 2;
+        const gOffense = g.skills['1H Slashing'] ?? g.level * 2;
         const gHitChance = calcHitChance(gOffense, defenseSkill);
 
         if (Math.random() < gHitChance) {
@@ -269,14 +269,14 @@ export function processTick(state: GameState): Partial<GameState> {
     newSkills['Offense'] = capSkill((newSkills['Offense'] ?? 0) + 1, player.level);
     // Weapon-type skill gain based on equipped weapon
     if (!player.gear['Primary']) {
-      newSkills['HandToHand'] = capSkill((newSkills['HandToHand'] ?? 0) + 1, player.level);
+      newSkills['Hand to Hand'] = capSkill((newSkills['Hand to Hand'] ?? 0) + 1, player.level);
     } else {
       // Treat high-damage weapons (>10 dmg) as 2H; others as 1H slash
       const primaryDmg = player.gear['Primary']?.stats?.damage ?? 0;
       if (primaryDmg > WEAPON_2H_DAMAGE_THRESHOLD) {
-        newSkills['2HSlash'] = capSkill((newSkills['2HSlash'] ?? 0) + 1, player.level);
+        newSkills['2H Slashing'] = capSkill((newSkills['2H Slashing'] ?? 0) + 1, player.level);
       } else {
-        newSkills['1HSlash'] = capSkill((newSkills['1HSlash'] ?? 0) + 1, player.level);
+        newSkills['1H Slashing'] = capSkill((newSkills['1H Slashing'] ?? 0) + 1, player.level);
       }
     }
 
@@ -391,64 +391,72 @@ export function processTick(state: GameState): Partial<GameState> {
 
     if (attackTarget.isPlayer) {
       // ── Monster attacks player ─────────────────────────────────────────
-      const mitigated = calcMitigatedDamage(npcDmg, player.stats.ac, npcLevel);
-      const newHp = player.stats.hp - mitigated;
-
-      newLog.push(
-        makeLogEntry(
-          `${currentMonster.name} hits YOU for ${mitigated} damage.`,
-          'hit'
-        )
-      );
-
-      // Defense skill increments when the monster successfully hits the player
-      const newSkillsOnHit = { ...player.skills };
-      newSkillsOnHit['Defense'] = capSkill((newSkillsOnHit['Defense'] ?? 0) + 1, player.level);
-
-      if (newHp <= 0) {
-        // ── Full death flow ────────────────────────────────────────────
-        const xpLost = calcDeathXpLoss(player.xpToNextLevel);
-        const newXp = Math.max(0, player.xp - xpLost);
-        const bindHp = calcBindPointHp(player.stats.maxHp);
-        const bindMana = calcBindPointMana(player.stats.maxMana, isCasterClass(player.class));
-
-        newLog.push(makeLogEntry(`You have been slain by ${currentMonster.name}!`, 'death'));
-        newLog.push(makeLogEntry(`You lose ${xpLost} experience points.`, 'system'));
-        newLog.push(makeLogEntry('You have been transported to your bind point.', 'system'));
-        newLog.push(makeLogEntry('Auto Combat has been disabled.', 'system'));
-
-        player = {
-          ...player,
-          xp: newXp,
-          deathCount: player.deathCount + 1,
-          skills: newSkillsOnHit,
-          stats: {
-            ...player.stats,
-            hp: bindHp,
-            mana: bindMana,
-          },
-        };
-        combat = {
-          ...combat,
-          autoAttacking: false,
-          isActive: false,
-          currentMonster: null,
-          monsterCurrentHp: 0,
-          currentMonsterLevel: 0,
-        };
+      // Dodge check
+      if (Math.random() < calcDodgeChance(player.stats.agi)) {
+        const newSkillsOnDodge = { ...player.skills };
+        newSkillsOnDodge['Dodge'] = capSkill((newSkillsOnDodge['Dodge'] ?? 0) + 1, player.level);
+        player = { ...player, skills: newSkillsOnDodge };
+        newLog.push(makeLogEntry('You dodge!', 'miss'));
       } else {
-        player = {
-          ...player,
-          skills: newSkillsOnHit,
-          stats: { ...player.stats, hp: newHp },
-        };
-        combat = {
-          ...combat,
-          currentMonster,
-          monsterCurrentHp,
-          currentMonsterLevel,
-          lastTickTime: Date.now(),
-        };
+        const mitigated = calcMitigatedDamage(npcDmg, player.stats.ac, npcLevel);
+        const newHp = player.stats.hp - mitigated;
+
+        newLog.push(
+          makeLogEntry(
+            `${currentMonster.name} hits YOU for ${mitigated} damage.`,
+            'hit'
+          )
+        );
+
+        // Defense skill increments when the monster successfully hits the player
+        const newSkillsOnHit = { ...player.skills };
+        newSkillsOnHit['Defense'] = capSkill((newSkillsOnHit['Defense'] ?? 0) + 1, player.level);
+
+        if (newHp <= 0) {
+          // ── Full death flow ────────────────────────────────────────────
+          const xpLost = calcDeathXpLoss(player.xpToNextLevel);
+          const newXp = Math.max(0, player.xp - xpLost);
+          const bindHp = calcBindPointHp(player.stats.maxHp);
+          const bindMana = calcBindPointMana(player.stats.maxMana, isCasterClass(player.class));
+
+          newLog.push(makeLogEntry(`You have been slain by ${currentMonster.name}!`, 'death'));
+          newLog.push(makeLogEntry(`You lose ${xpLost} experience points.`, 'system'));
+          newLog.push(makeLogEntry('You have been transported to your bind point.', 'system'));
+          newLog.push(makeLogEntry('Auto Combat has been disabled.', 'system'));
+
+          player = {
+            ...player,
+            xp: newXp,
+            deathCount: player.deathCount + 1,
+            skills: newSkillsOnHit,
+            stats: {
+              ...player.stats,
+              hp: bindHp,
+              mana: bindMana,
+            },
+          };
+          combat = {
+            ...combat,
+            autoAttacking: false,
+            isActive: false,
+            currentMonster: null,
+            monsterCurrentHp: 0,
+            currentMonsterLevel: 0,
+          };
+        } else {
+          player = {
+            ...player,
+            skills: newSkillsOnHit,
+            stats: { ...player.stats, hp: newHp },
+          };
+          combat = {
+            ...combat,
+            currentMonster,
+            monsterCurrentHp,
+            currentMonsterLevel,
+            lastTickTime: Date.now(),
+          };
+        }
       }
     } else if (attackTarget.ghostId) {
       // ── Monster attacks a grouped ghost ────────────────────────────────
@@ -458,6 +466,12 @@ export function processTick(state: GameState): Partial<GameState> {
 
         // Dodge check
         if (Math.random() < calcDodgeChance(tg.stats.agi)) {
+          updatedGhosts = updatedGhosts.map((g) => {
+            if (g.id !== tg.id) return g;
+            const newSkills = { ...g.skills };
+            newSkills['Dodge'] = Math.min(200, Math.min(g.level * 5, (newSkills['Dodge'] ?? 0) + 1));
+            return { ...g, skills: newSkills };
+          });
           newLog.push(makeLogEntry(`${tg.name} dodges!`, 'miss'));
         } else {
           const mitigated = calcMitigatedDamage(npcDmg, tg.stats.ac, npcLevel);

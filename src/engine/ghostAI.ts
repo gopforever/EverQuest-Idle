@@ -298,6 +298,9 @@ export function processGhostTick(
 
     // Dodge check
     if (Math.random() < calcDodgeChance(g.stats.agi)) {
+      const dodgeSkills = { ...g.skills };
+      dodgeSkills['Dodge'] = capGhostSkill((dodgeSkills['Dodge'] ?? 0) + 1, g.level);
+      g = { ...g, skills: dodgeSkills };
       newEntries.push(makeLogEntry(`${g.name} dodges!`, 'miss'));
     } else {
       const mitigated = calcMitigatedDamage(rawNpcDmg, g.stats.ac, cs.monsterLevel);
@@ -389,7 +392,7 @@ export function processGhostTick(
       // Skill gain on kill
       const killSkills = { ...g.skills };
       killSkills['Offense'] = capGhostSkill((killSkills['Offense'] ?? 0) + 1, newLevel);
-      killSkills['1HSlash'] = capGhostSkill((killSkills['1HSlash'] ?? 0) + 1, newLevel);
+      killSkills['1H Slashing'] = capGhostSkill((killSkills['1H Slashing'] ?? 0) + 1, newLevel);
       g = { ...g, skills: killSkills };
 
       // Potential loot (50% chance)

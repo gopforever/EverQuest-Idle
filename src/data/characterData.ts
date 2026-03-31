@@ -73,13 +73,13 @@ export const RACE_STARTING_ZONES: Record<Race, string> = {
 // ── Starting Skills by Class ──────────────────────────────────────────────────
 
 export const CLASS_STARTING_SKILLS: Record<CharacterClass, Record<string, number>> = {
-  Warrior:      { '1HSlash': 5, '2HSlash': 5, Offense: 5, Defense: 5 },
-  Monk:         { HandToHand: 5, Offense: 5, Defense: 5 },
-  Rogue:        { '1HSlash': 5, Backstab: 5, Offense: 5, Defense: 5 },
-  Paladin:      { '1HSlash': 5, Offense: 5, Defense: 5 },
-  ShadowKnight: { '1HSlash': 5, Offense: 5, Defense: 5 },
-  Ranger:       { '1HSlash': 5, Archery: 5, Offense: 5, Defense: 5 },
-  Bard:         { '1HSlash': 5, Offense: 5, Defense: 5, Singing: 5 },
+  Warrior:      { '1H Slashing': 5, '2H Slashing': 5, Offense: 5, Defense: 5 },
+  Monk:         { 'Hand to Hand': 5, Offense: 5, Defense: 5 },
+  Rogue:        { '1H Slashing': 5, Backstab: 5, Offense: 5, Defense: 5 },
+  Paladin:      { '1H Slashing': 5, Offense: 5, Defense: 5 },
+  ShadowKnight: { '1H Slashing': 5, Offense: 5, Defense: 5 },
+  Ranger:       { '1H Slashing': 5, Archery: 5, Offense: 5, Defense: 5 },
+  Bard:         { '1H Slashing': 5, Offense: 5, Defense: 5, Singing: 5 },
   Cleric:       { Meditate: 1, Channeling: 1, Defense: 5 },
   Druid:        { Meditate: 1, Channeling: 1, Defense: 5 },
   Shaman:       { Meditate: 1, Channeling: 1, Defense: 5 },
