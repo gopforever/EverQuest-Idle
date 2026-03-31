@@ -2,6 +2,8 @@ import { useGameStore } from '../../store/gameStore';
 
 export function LlmSettingsPanel() {
   const ghosts = useGameStore((s) => s.ghosts);
+  const llmErrorCount = useGameStore((s) => s.llmErrorCount);
+  const lastLlmError = useGameStore((s) => s.lastLlmError);
   const isActive = Boolean(import.meta.env.VITE_AI_GATEWAY_KEY);
   const ghostsWithMemory = ghosts.filter((g) => (g.memory?.length ?? 0) > 0).length;
 
@@ -62,6 +64,24 @@ export function LlmSettingsPanel() {
       >
         <span style={{ color: 'var(--eq-text-dim)' }}>Ghosts with memories</span>
         <span style={{ color: 'var(--eq-gold)', fontWeight: 'bold' }}>{ghostsWithMemory}</span>
+      </div>
+
+      {/* LLM error count */}
+      <div
+        className="flex items-center justify-between p-2 rounded border"
+        style={{ borderColor: 'var(--eq-border)', backgroundColor: '#1a1510' }}
+      >
+        <span style={{ color: 'var(--eq-text-dim)' }}>LLM errors (session)</span>
+        <span style={{ color: llmErrorCount > 0 ? '#cc4444' : 'var(--eq-gold)', fontWeight: 'bold' }}>{llmErrorCount}</span>
+      </div>
+
+      {/* Last LLM error */}
+      <div
+        className="p-2 rounded border text-xs leading-relaxed"
+        style={{ borderColor: 'var(--eq-border)', backgroundColor: '#1a1510', color: 'var(--eq-text-dim)' }}
+      >
+        <span style={{ color: 'var(--eq-text-dim)' }}>Last LLM error: </span>
+        <span style={{ color: lastLlmError ? '#cc4444' : 'var(--eq-text-dim)' }}>{lastLlmError ?? 'None'}</span>
       </div>
 
       {/* Clear memories button */}

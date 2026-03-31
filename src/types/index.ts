@@ -316,4 +316,6 @@ export interface GameState {
   gameStarted: boolean;
   characterCreated: boolean;
   bazaar: BazaarState;
+  llmErrorCount: number;
+  lastLlmError?: string;
 }
