@@ -124,6 +124,118 @@ const GHOST_CHAT: Record<string, string[]> = {
     'Prefer to play alone tbh',
     'Quiet night',
   ],
+  NinjaLooter: [
+    'Didnt see your name on it lol',
+    'First come first served',
+    'Oops my bad... not really',
+    'Free loot is free loot',
+    'You snooze you lose',
+  ],
+  KSer: [
+    'Oh were you fighting that',
+    'Looked like it was almost dead anyway',
+    'Sorry didnt see you there',
+    'Mob was in my way',
+    'Accidents happen',
+  ],
+  CampStealer: [
+    'I was here earlier',
+    'Camps arent owned in EQ',
+    'The rules say you have to be actively pulling',
+    'I only need like 20 minutes here',
+    'Sorry just need one more spawn',
+  ],
+  Drama: [
+    'I cannot believe what just happened to me...',
+    'Some people in this game are just awful...',
+    'I have been nothing but nice and this is what I get...',
+    'Not naming names but you know who you are...',
+    'I am literally shaking right now...',
+  ],
+  Burnout: [
+    'another day another grind',
+    'why do i even log in anymore',
+    'six years and i still havent quit',
+    'one more level then im done. i say that every night.',
+    'i should really go to bed',
+  ],
+  Returning: [
+    'wait they changed this zone??',
+    'where is the old EC tunnel',
+    'i remember when this dropped all the time',
+    'this is so different from 2003',
+    'what happened to my old guild',
+  ],
+  NewPlayer: [
+    'how do i make my guy attack',
+    'waht does ZEM meen',
+    'sorry i dont have a good wepan yet',
+    'is this zone good for my levle',
+    'someone told me to come here idk',
+  ],
+  Addict: [
+    'just one more pull i swear',
+    'dinner can wait the xp is flowing',
+    'its only 3am its fine',
+    'i told myself id log off at 60% to next level',
+    'cant stop now almost have enough plat',
+  ],
+  Conspiracy: [
+    'the LOOT TABLES are rigged I have killed 400 of these',
+    'GMs watch certain players I have PROOF',
+    '*whispers* the servers track more than you think',
+    'this zone is secretly nerfed compared to launch',
+    'the RNG is NOT random look at the patterns',
+  ],
+  Roleplayer: [
+    'Hail traveler, well met in these dangerous lands',
+    '*bows respectfully* Greetings friend',
+    'By the gods this dungeon grows darker still',
+    'I shall not break from my oath as a wanderer of Norrath',
+    'Thou dost not understand the ways of my people',
+  ],
+  ForumWarrior: [
+    'actually per the patch notes from March this was nerfed 12 percent',
+    'warriors are objectively the best tanks and here is why',
+    'I have a spreadsheet on this if anyone wants the data',
+    'the devs have no idea how to balance this class',
+    'this is literally the same argument from the EQlive forums in 2001',
+  ],
+  GuildOfficer: [
+    '<Eternal Vanguard> is recruiting skilled players PST',
+    'our loot council is completely fair and transparent',
+    'if you have a problem with the rules talk to an officer',
+    'we have raid nights Tuesday Thursday and Sunday',
+    'drama will not be tolerated in this guild',
+  ],
+  Economist: [
+    'silk is undervalued right now buy in before patch',
+    'the bat wing market is about to crash watch the listings',
+    'i have 12 mules parked in the bazaar',
+    'supply and demand people its not complicated',
+    'ill give you 80 percent of EC tunnel price take it or leave it',
+  ],
+  Speedrunner: [
+    'this pull route saves 4 seconds per cycle',
+    'you are killing mobs in the wrong order',
+    'i have optimized this camp and nobody here is efficient',
+    'respawn timer is 16 minutes so we have exactly 3 pulls',
+    'please dont break my flow i am in a rhythm',
+  ],
+  Pacifist: [
+    'i actually leveled almost entirely through tradeskills',
+    'combat is optional you know',
+    'i have visited every zone without killing anything notable',
+    'some of us enjoy the journey not just the killing',
+    'have you tried just... exploring',
+  ],
+  Veteran: [
+    'I remember when this zone used to train to the zoneline constantly',
+    'back in 99 this dropped every other kill',
+    'kids today dont know about CR runs in Paineel',
+    'TRAINS TO ZONE classic Norrath right there',
+    'played since beta and i still find new things',
+  ],
 };
 
 // Zone travel chance per tick-60 window, keyed by personality
@@ -137,6 +249,22 @@ const ZONE_TRAVEL_CHANCE: Record<string, number> = {
   Tradeskiller: 0.15,
   Healer: 0.10,
   Loner: 0.10,
+  NinjaLooter: 0.30,
+  KSer: 0.20,
+  CampStealer: 0.05,
+  Drama: 0.15,
+  Burnout: 0.05,
+  Returning: 0.20,
+  NewPlayer: 0.30,
+  Addict: 0.05,
+  Conspiracy: 0.10,
+  Roleplayer: 0.15,
+  ForumWarrior: 0.10,
+  GuildOfficer: 0.20,
+  Economist: 0.35,
+  Speedrunner: 0.08,
+  Pacifist: 0.25,
+  Veteran: 0.12,
 };
 
 // ── Caster classes (same list as RightPanel.tsx) ─────────────────────────────
@@ -237,11 +365,42 @@ export function processGhostTick(
       return g;
     }
 
+    // ── Mood system ───────────────────────────────────────────────────────────
+    const hpPct = g.stats.maxHp > 0 ? g.stats.hp / g.stats.maxHp : 1;
+    let mood: GhostPlayer['mood'] = 'normal';
+    if (hpPct < 0.25) mood = 'panicking';
+    else if (g.currentActivity === 'Recovering') mood = 'tilted';
+    else if (g.xp > 0 && g.xp > g.xpToNextLevel * 0.95) mood = 'euphoric';
+    else if (g.currentActivity === 'Idle' && Math.random() < 0.3) mood = 'bored';
+    g = { ...g, mood };
+
     // ── Ghost chat (0.3% chance per tick) ────────────────────────────────
     if (Math.random() < 0.003) {
       const pool = GHOST_CHAT[g.personality] ?? GHOST_CHAT['Casual'];
       const msg = pool[Math.floor(Math.random() * pool.length)];
       newEntries.push(makeLogEntry(`${g.name} says, '${msg}'`, 'system'));
+    }
+
+    // ── Ghost-to-ghost reactions (1% chance per tick) ─────────────────────
+    if (Math.random() < 0.01 && newEntries.length > 0) {
+      const recentChats = newEntries.filter(e => e.type === 'system' && e.message.includes(" says, '"));
+      if (recentChats.length > 0) {
+        const reactions: Record<string, string[]> = {
+          Social: ['That sounds amazing!', '/cheer', 'I agree completely!', 'Grats!'],
+          ForumWarrior: ['Actually thats not accurate...', 'Citation needed', 'I disagree and here is why'],
+          Drama: ['Can you believe what they just said...', 'some people...'],
+          Loner: ['k'],
+          Conspiracy: ['thats EXACTLY what they want you to think'],
+          NinjaLooter: ['lol'],
+          Veteran: ['we used to say the same thing in 99'],
+          NewPlayer: ['what does that mean'],
+          Roleplayer: ['*nods sagely*'],
+          GuildOfficer: ['if you need a guild PST'],
+        };
+        const pool = reactions[g.personality] ?? ['lol', 'yeah', 'true'];
+        const reaction = pool[Math.floor(Math.random() * pool.length)];
+        newEntries.push(makeLogEntry(`${g.name} says, '${reaction}'`, 'system'));
+      }
     }
 
     // ── Zone travel (every 60 ticks) ─────────────────────────────────────

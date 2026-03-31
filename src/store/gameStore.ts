@@ -42,7 +42,11 @@ const ALL_RACE_CLASS_PAIRS: { race: Race; cls: CharacterClass }[] = (
   Object.entries(RACE_CLASS_COMBOS) as [Race, CharacterClass[]][]
 ).flatMap(([race, classes]) => classes.map((cls) => ({ race, cls })));
 
-const GHOST_PERSONALITIES = ['Grinder', 'Tradeskiller', 'Merchant', 'Casual', 'Tank', 'Healer', 'Loner', 'Social', 'AFKFarmer'] as const;
+const GHOST_PERSONALITIES = [
+  'Grinder', 'Tradeskiller', 'Merchant', 'Casual', 'Tank', 'Healer', 'Loner', 'Social', 'AFKFarmer',
+  'NinjaLooter', 'KSer', 'CampStealer', 'Drama', 'Burnout', 'Returning', 'NewPlayer', 'Addict',
+  'Conspiracy', 'Roleplayer', 'ForumWarrior', 'GuildOfficer', 'Economist', 'Speedrunner', 'Pacifist', 'Veteran',
+] as const;
 
 function makeGhost(index: number): GhostPlayer {
   const pair = ALL_RACE_CLASS_PAIRS[index % ALL_RACE_CLASS_PAIRS.length];

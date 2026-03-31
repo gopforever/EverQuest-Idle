@@ -85,7 +85,23 @@ export type PersonalityType =
   | 'Healer'
   | 'Loner'
   | 'Social'
-  | 'AFKFarmer';
+  | 'AFKFarmer'
+  | 'NinjaLooter'
+  | 'KSer'
+  | 'CampStealer'
+  | 'Drama'
+  | 'Burnout'
+  | 'Returning'
+  | 'NewPlayer'
+  | 'Addict'
+  | 'Conspiracy'
+  | 'Roleplayer'
+  | 'ForumWarrior'
+  | 'GuildOfficer'
+  | 'Economist'
+  | 'Speedrunner'
+  | 'Pacifist'
+  | 'Veteran';
 
 export type Continent = 'Antonica' | 'Faydwer' | 'Odus' | 'Planes';
 
@@ -232,6 +248,7 @@ export interface GhostPlayer {
   deathCount: number;
   skills: Record<string, number>;
   recoveryTicksRemaining: number;
+  mood?: 'normal' | 'tilted' | 'euphoric' | 'panicking' | 'bored';
   memory?: string[];           // last N event strings this ghost experienced
   memorySummary?: string;      // LLM-compressed summary of past events
   llmCooldownUntilTick?: number; // don't call LLM again until this tick
