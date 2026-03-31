@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "server": "node server.js",
     "build": "tsc && vite build",
     "preview": "vite preview"
   },
@@ -12,6 +13,8 @@
     "@ai-sdk/gateway": "^2.0.0",
     "@supabase/supabase-js": "^2.101.1",
     "ai": "^5.0.0",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
     "localforage": "^1.10.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

@@ -36,13 +36,28 @@ Players choose a classic EQ class and race, then progress through zones by fight
 - `src/engine/tickEngine.ts` — Game tick logic
 - `.env.local` — API keys for AI Gateway and Supabase
 
+## Architecture
+
+- **Frontend** (Vite dev server, port 5000): React app, game engine, UI panels
+- **Backend** (`server.js`, port 3001): Express proxy for Vercel AI Gateway (ghost chat)
+  - Vite proxies `/api/*` → `localhost:3001` in dev mode
+  - Keys stay server-side and are never exposed to the browser
+  - Endpoint: `POST /api/ghost-chat` — takes `{ system, prompt }`, returns `{ text }`
+
 ## Development
 
 ```bash
-npm run dev      # Start dev server on port 5000
+npm run dev      # Start Vite frontend on port 5000
+npm run server   # Start ghost chat proxy on port 3001
 npm run build    # TypeScript compile + Vite build → dist/
 npm run preview  # Preview production build
 ```
+
+## Secrets (Replit Secrets — never in .env.local)
+
+- `VITE_AI_GATEWAY_KEY` — Vercel AI Gateway client key (ghost chat AI)
+- `VITE_SUPABASE_URL` — Supabase project URL (cloud saves)
+- `VITE_SUPABASE_ANON_KEY` — Supabase anonymous key (cloud saves)
 
 ## Deployment
 

@@ -1,11 +1,15 @@
-import { generateText } from 'ai';
 import type { GameState, GhostPlayer, CombatLogEntry } from '../types';
-import { isLlmEnabled, ghostModel } from './llmConfig';
 
 export interface LlmAgentResult {
   ghostId: string;
   message: string;
   llmCooldownUntilTick: number;
+}
+
+const GHOST_CHAT_ENDPOINT = '/api/ghost-chat';
+
+export function isLlmEnabled(): boolean {
+  return Boolean(import.meta.env.VITE_AI_GATEWAY_KEY);
 }
 
 function buildSystemPrompt(ghost: GhostPlayer): string {
@@ -133,6 +137,28 @@ function generateId(): string {
 }
 
 /**
+ * Call the server-side ghost chat proxy for a single ghost.
+ */
+async function callGhostChatProxy(ghost: GhostPlayer, worldEvents: string): Promise<string> {
+  const response = await fetch(GHOST_CHAT_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      system: buildSystemPrompt(ghost),
+      prompt: buildUserPrompt(ghost, worldEvents),
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
+    throw new Error(body.error ?? `HTTP ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.text as string;
+}
+
+/**
  * Run the LLM agent queue for eligible ghosts.
  * Returns new CombatLogEntry items and LlmAgentResult records to apply.
  * This is fire-and-forget safe — errors are caught per ghost and skipped.
@@ -167,13 +193,7 @@ export async function runLlmAgentQueue(
   await Promise.all(
     eligible.map(async (ghost) => {
       try {
-        const { text } = await generateText({
-          model: ghostModel,
-          system: buildSystemPrompt(ghost),
-          prompt: buildUserPrompt(ghost, worldEvents),
-          maxOutputTokens: 80,
-        });
-
+        const text = await callGhostChatProxy(ghost, worldEvents);
         const trimmed = text.trim();
         if (!trimmed) return;
 
@@ -191,7 +211,7 @@ export async function runLlmAgentQueue(
         });
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
-        console.error(`[LLM ghost error] ${ghost.name}:`, err);
+        console.error(`[LLM ghost error] ${ghost.name}:`, msg);
         errorCount++;
         lastError = msg;
       }
