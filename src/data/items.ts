@@ -139,6 +139,78 @@ export const ITEMS: Record<string, Item> = {
     description: 'A worn cloth tunic. Standard starter gear.',
   },
 
+  tattered_cloth_sleeves: {
+    id: 'tattered_cloth_sleeves', name: 'Tattered Cloth Sleeves', slot: 'Arms',
+    type: 'armor', rarity: 'common', stats: { ac: 1 }, weight: 0.5,
+    classes: ALL_CLASSES, races: ALL_RACES, lore: false, noDrop: false,
+    stackable: false, value: 2, source: 'vendor',
+    sprite: '/assets/sprites/items/placeholder.png',
+    recLevel: 1, reqLevel: 1, description: 'Worn cloth sleeves. Standard starter gear.',
+  },
+
+  tattered_cloth_wristguard: {
+    id: 'tattered_cloth_wristguard', name: 'Tattered Cloth Wristguard', slot: 'Wrist1',
+    type: 'armor', rarity: 'common', stats: { ac: 1 }, weight: 0.3,
+    classes: ALL_CLASSES, races: ALL_RACES, lore: false, noDrop: false,
+    stackable: false, value: 2, source: 'vendor',
+    sprite: '/assets/sprites/items/placeholder.png',
+    recLevel: 1, reqLevel: 1, description: 'A tattered cloth wristguard.',
+  },
+
+  tattered_cloth_wristguard2: {
+    id: 'tattered_cloth_wristguard2', name: 'Tattered Cloth Wristguard', slot: 'Wrist2',
+    type: 'armor', rarity: 'common', stats: { ac: 1 }, weight: 0.3,
+    classes: ALL_CLASSES, races: ALL_RACES, lore: false, noDrop: false,
+    stackable: false, value: 2, source: 'vendor',
+    sprite: '/assets/sprites/items/placeholder.png',
+    recLevel: 1, reqLevel: 1, description: 'A tattered cloth wristguard.',
+  },
+
+  tattered_cloth_gloves: {
+    id: 'tattered_cloth_gloves', name: 'Tattered Cloth Gloves', slot: 'Hands',
+    type: 'armor', rarity: 'common', stats: { ac: 1 }, weight: 0.4,
+    classes: ALL_CLASSES, races: ALL_RACES, lore: false, noDrop: false,
+    stackable: false, value: 2, source: 'vendor',
+    sprite: '/assets/sprites/items/placeholder.png',
+    recLevel: 1, reqLevel: 1, description: 'Worn cloth gloves.',
+  },
+
+  tattered_cloth_pants: {
+    id: 'tattered_cloth_pants', name: 'Tattered Cloth Pants', slot: 'Legs',
+    type: 'armor', rarity: 'common', stats: { ac: 1 }, weight: 0.8,
+    classes: ALL_CLASSES, races: ALL_RACES, lore: false, noDrop: false,
+    stackable: false, value: 2, source: 'vendor',
+    sprite: '/assets/sprites/items/placeholder.png',
+    recLevel: 1, reqLevel: 1, description: 'Worn cloth pants.',
+  },
+
+  tattered_cloth_boots: {
+    id: 'tattered_cloth_boots', name: 'Tattered Cloth Boots', slot: 'Feet',
+    type: 'armor', rarity: 'common', stats: { ac: 1 }, weight: 0.6,
+    classes: ALL_CLASSES, races: ALL_RACES, lore: false, noDrop: false,
+    stackable: false, value: 2, source: 'vendor',
+    sprite: '/assets/sprites/items/placeholder.png',
+    recLevel: 1, reqLevel: 1, description: 'Worn cloth boots.',
+  },
+
+  tattered_cloth_belt: {
+    id: 'tattered_cloth_belt', name: 'Tattered Cloth Belt', slot: 'Waist',
+    type: 'armor', rarity: 'common', stats: { ac: 1 }, weight: 0.3,
+    classes: ALL_CLASSES, races: ALL_RACES, lore: false, noDrop: false,
+    stackable: false, value: 2, source: 'vendor',
+    sprite: '/assets/sprites/items/placeholder.png',
+    recLevel: 1, reqLevel: 1, description: 'A tattered cloth belt.',
+  },
+
+  tattered_cloth_cloak: {
+    id: 'tattered_cloth_cloak', name: 'Tattered Cloth Cloak', slot: 'Back',
+    type: 'armor', rarity: 'common', stats: { ac: 1 }, weight: 0.4,
+    classes: ALL_CLASSES, races: ALL_RACES, lore: false, noDrop: false,
+    stackable: false, value: 2, source: 'vendor',
+    sprite: '/assets/sprites/items/placeholder.png',
+    recLevel: 1, reqLevel: 1, description: 'A tattered cloth cloak.',
+  },
+
   cracked_leather_cap: {
     id: 'cracked_leather_cap',
     name: 'Cracked Leather Cap',
@@ -2265,6 +2337,74 @@ export const ITEMS: Record<string, Item> = {
     sprite: '/assets/sprites/items/placeholder.png',
     recLevel: 20,
     description: 'Precision tinkered goggles. Gnome only. Enhances INT and DEX.',
+  },
+
+  rusty_dagger: {
+    id: 'rusty_dagger', name: 'Rusty Dagger', slot: 'Primary',
+    type: 'weapon', rarity: 'common', stats: { damage: 2, delay: 20 },
+    weight: 1.5,
+    classes: ['Rogue', 'Wizard', 'Magician', 'Enchanter', 'Necromancer'],
+    races: ALL_RACES, lore: false, noDrop: false, stackable: false,
+    value: 3, source: 'vendor',
+    sprite: '/assets/sprites/items/placeholder.png',
+    recLevel: 1,
+    description: 'A small rusty dagger. Quick but weak.',
+  },
+
+  cracked_staff: {
+    id: 'cracked_staff', name: 'Cracked Staff', slot: 'Primary',
+    type: 'weapon', rarity: 'common', stats: { damage: 3, delay: 35 },
+    weight: 4.0,
+    classes: ['Cleric', 'Druid', 'Shaman', 'Wizard', 'Magician', 'Enchanter', 'Necromancer'],
+    races: ALL_RACES, lore: false, noDrop: false, stackable: false,
+    value: 3, source: 'vendor',
+    sprite: '/assets/sprites/items/placeholder.png',
+    recLevel: 1,
+    description: 'A cracked wooden staff. Better than bare hands.',
+  },
+
+  simple_club: {
+    id: 'simple_club', name: 'Simple Club', slot: 'Primary',
+    type: 'weapon', rarity: 'common', stats: { damage: 3, delay: 30 },
+    weight: 3.5,
+    classes: ['Paladin', 'Cleric', 'Shaman'],
+    races: ALL_RACES, lore: false, noDrop: false, stackable: false,
+    value: 3, source: 'vendor',
+    sprite: '/assets/sprites/items/placeholder.png',
+    recLevel: 1,
+    description: 'A crude wooden club.',
+  },
+
+  worn_handwraps: {
+    id: 'worn_handwraps', name: 'Worn Handwraps', slot: 'Primary',
+    type: 'weapon', rarity: 'common', stats: { damage: 3, delay: 22 },
+    weight: 0.5,
+    classes: ['Monk'],
+    races: ALL_RACES, lore: false, noDrop: false, stackable: false,
+    value: 2, source: 'vendor',
+    sprite: '/assets/sprites/items/placeholder.png',
+    recLevel: 1,
+    description: 'Worn cloth wraps for bare-knuckle fighting.',
+  },
+
+  fresh_water: {
+    id: 'fresh_water', name: 'Fresh Water', slot: null,
+    type: 'drink', rarity: 'common', stats: {},
+    weight: 0.5, classes: ALL_CLASSES, races: ALL_RACES,
+    lore: false, noDrop: false, stackable: true, stackSize: 20,
+    value: 1, source: 'vendor',
+    sprite: '/assets/sprites/items/placeholder.png',
+    description: 'A skin of fresh water.',
+  },
+
+  bread_loaf: {
+    id: 'bread_loaf', name: 'Bread Loaf', slot: null,
+    type: 'food', rarity: 'common', stats: {},
+    weight: 0.3, classes: ALL_CLASSES, races: ALL_RACES,
+    lore: false, noDrop: false, stackable: true, stackSize: 20,
+    value: 1, source: 'vendor',
+    sprite: '/assets/sprites/items/placeholder.png',
+    description: 'A simple loaf of bread.',
   },
 };
 export const ITEM_LIST = Object.values(ITEMS);
