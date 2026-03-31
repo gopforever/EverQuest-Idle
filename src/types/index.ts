@@ -221,7 +221,6 @@ export interface GhostPlayer {
   level: number;
   xp: number;
   xpToNextLevel: number;
-  currentHp: number;
   personality: PersonalityType;
   isOnline: boolean;
   currentZone: string;

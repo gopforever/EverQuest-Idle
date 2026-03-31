@@ -59,7 +59,7 @@ function GhostDetailModal({ ghost, onClose }: { ghost: GhostPlayer; onClose: () 
 
         {/* HP/Mana bars */}
         <div className="mb-3 space-y-1">
-          <HpBar current={ghost.currentHp} max={ghost.stats.maxHp} label="HP" colorClass="hp" />
+          <HpBar current={ghost.stats.hp} max={ghost.stats.maxHp} label="HP" colorClass="hp" />
           {CASTER_CLASSES.includes(ghost.class) && (
             <HpBar current={ghost.stats.mana} max={ghost.stats.maxMana} label="Mana" colorClass="mana" />
           )}
@@ -186,7 +186,7 @@ export function RightPanel() {
               </span>
               <span style={{ color: 'var(--eq-text-dim)' }}>Lv{ghost.level}</span>
             </div>
-            <HpBar current={ghost.currentHp} max={ghost.stats.maxHp} colorClass="hp" showText={false} />
+            <HpBar current={ghost.stats.hp} max={ghost.stats.maxHp} colorClass="hp" showText={false} />
             {CASTER_CLASSES.includes(ghost.class) && (
               <div className="mt-0.5">
                 <HpBar current={ghost.stats.mana} max={ghost.stats.maxMana} colorClass="mana" showText={false} />
