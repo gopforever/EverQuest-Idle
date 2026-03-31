@@ -206,9 +206,9 @@ export function RightPanel() {
         ))}
         {/* Group footer buttons */}
         <div className="flex gap-1 mt-1">
-          <button style={goldBtnStyle}>[INVITE]</button>
+          <button style={{ ...goldBtnStyle, opacity: 0.4, cursor: 'not-allowed' }} disabled>[INVITE]</button>
           {onlineGhosts.length > 0 && (
-            <button style={goldBtnStyle}>[DISBAND]</button>
+            <button style={{ ...goldBtnStyle, opacity: 0.4, cursor: 'not-allowed' }} disabled>[DISBAND]</button>
           )}
         </div>
       </div>
@@ -243,7 +243,8 @@ export function RightPanel() {
         <EQPanelHeader title="ACTIONS" />
         <button
           className="w-full py-1 text-xs rounded border"
-          style={{ backgroundColor: '#1a1510', borderColor: 'var(--eq-border)', color: 'var(--eq-text)' }}
+          style={{ backgroundColor: '#1a1510', borderColor: 'var(--eq-border)', color: 'var(--eq-text-dim)', opacity: 0.5, cursor: 'not-allowed' }}
+          disabled
         >
           ABILITIES
         </button>

@@ -194,12 +194,6 @@ export async function runLlmAgentQueue(
         console.error(`[LLM ghost error] ${ghost.name}:`, err);
         errorCount++;
         lastError = msg;
-        entries.push({
-          id: generateId(),
-          timestamp: Date.now(),
-          message: `[LLM] ${ghost.name}: ${msg.slice(0, 120)}`,
-          type: 'system',
-        });
       }
     })
   );

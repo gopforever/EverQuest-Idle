@@ -79,8 +79,21 @@ export function SpellsPanel() {
 
       {/* Spell book */}
       <EQPanelHeader title="SPELL BOOK" />
-      <div className="p-3 text-xs text-center" style={{ color: 'var(--eq-text-dim)' }}>
-        No spells known. Visit a spell vendor or trainer.
+      <div className="p-3 text-center space-y-2">
+        <div className="text-xs" style={{ color: 'var(--eq-text-dim)' }}>
+          Visit a spell vendor or scribe trainer to learn spells.
+        </div>
+        <div
+          className="text-xs font-bold px-2 py-1 rounded inline-block"
+          style={{
+            backgroundColor: '#1a1207',
+            color: 'var(--eq-gold)',
+            border: '1px solid var(--eq-border)',
+            opacity: 0.75,
+          }}
+        >
+          ✦ Spell system coming in Phase 2 ✦
+        </div>
       </div>
     </div>
   );

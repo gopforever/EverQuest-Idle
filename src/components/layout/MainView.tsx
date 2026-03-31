@@ -32,18 +32,33 @@ export function MainView() {
         </span>
       </div>
 
-      {/* Zone art placeholder */}
+      {/* Zone art / flavor area */}
       <div
-        className="flex items-center justify-center flex-1 text-2xl font-bold border-b"
+        className="flex flex-col items-center justify-center flex-1 border-b px-6 text-center gap-2"
         style={{
           minHeight: '200px',
           borderColor: 'var(--eq-border)',
           backgroundColor: '#0d0b08',
-          color: 'var(--eq-text-dim)',
           fontFamily: '"Palatino Linotype", Palatino, Georgia, serif',
         }}
       >
-        [ {currentZone.name} ]
+        <div style={{ fontSize: '28px' }}>
+          {currentZone.type === 'dungeon' ? '🪦' :
+           currentZone.type === 'city' ? '🏙️' :
+           currentZone.type === 'raid' ? '⚔️' :
+           currentZone.type === 'plane' ? '✨' : '🌿'}
+        </div>
+        <div className="text-xl font-bold" style={{ color: 'var(--eq-gold)' }}>
+          {currentZone.name}
+        </div>
+        {currentZone.description && (
+          <div className="text-sm max-w-sm" style={{ color: 'var(--eq-text-dim)', lineHeight: '1.5' }}>
+            {currentZone.description}
+          </div>
+        )}
+        <div className="text-xs mt-1 px-2 py-0.5 rounded" style={{ backgroundColor: '#1a1207', color: 'var(--eq-border)', border: '1px solid var(--eq-border)' }}>
+          Levels {currentZone.levelRange.min}–{currentZone.levelRange.max} · ZEM {currentZone.zem}
+        </div>
       </div>
 
       {/* Combat area */}

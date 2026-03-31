@@ -36,8 +36,11 @@ export function GuildPanel() {
           or gather your allies and found one yourself.
         </div>
         <div className="flex gap-2 justify-center">
-          <button style={btnStyle} onClick={() => undefined}>[FORM GUILD]</button>
-          <button style={btnStyle} onClick={() => undefined}>[JOIN GUILD]</button>
+          <button style={{ ...btnStyle, opacity: 0.5, cursor: 'not-allowed' }} disabled>[FORM GUILD]</button>
+          <button style={{ ...btnStyle, opacity: 0.5, cursor: 'not-allowed' }} disabled>[JOIN GUILD]</button>
+        </div>
+        <div className="text-xs mt-3" style={{ color: 'var(--eq-text-dim)', fontStyle: 'italic' }}>
+          ✦ Guild system coming in Phase 2 ✦
         </div>
       </div>
 
