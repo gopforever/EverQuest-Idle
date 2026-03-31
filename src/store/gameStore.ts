@@ -16,6 +16,7 @@ import { ZONES, STARTING_ZONE } from '../data/zones';
 import { processTick } from '../engine/tick';
 import { processGhostTick } from '../engine/ghostAI';
 import { saveGameState, loadGameState } from '../engine/save';
+import { syncGhostsToSupabase, loadGhostsFromSupabase, syncGhostMemory } from '../engine/ghostSync';
 import { calcXpToNextLevel } from '../engine/combat';
 import { RECIPES } from '../data/recipes';
 import { attemptCombine } from '../engine/tradeskills';
@@ -325,6 +326,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
     // Fire LLM agent queue every 50 ticks (non-blocking)
     if (newTickCount % 50 === 0) {
       get().runLlmAgentsAsync();
+      // Sync all ghost state to Supabase (non-blocking)
+      void syncGhostsToSupabase(get().ghosts);
     }
   },
 
@@ -384,12 +387,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   loadGame: () => {
-    void loadGameState().then((saved) => {
-      if (!saved) return;
-      set((state) => ({
-        ...state,
-        ...saved,
-      }));
+    void loadGameState().then(async (saved) => {
+      if (saved) {
+        set((state) => ({ ...state, ...saved }));
+      }
+      // Hydrate ghosts from Supabase (authoritative remote store)
+      const remoteGhosts = await loadGhostsFromSupabase();
+      if (remoteGhosts && remoteGhosts.length > 0) {
+        set({ ghosts: remoteGhosts });
+      }
     });
   },
 
@@ -657,6 +663,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
         llmErrorCount: s.llmErrorCount + errorCount,
         ...(lastError !== undefined ? { lastLlmError: lastError } : {}),
       }));
+      // Sync just the memory/mood fields for ghosts that ran LLM (lightweight)
+      if (results.length > 0) {
+        const resultGhostIds = new Set(results.map(r => r.ghostId));
+        const updatedGhosts = get().ghosts.filter(g => resultGhostIds.has(g.id));
+        for (const ghost of updatedGhosts) {
+          void syncGhostMemory(ghost);
+        }
+      }
     }).catch((err: unknown) => {
       console.error('[LLM queue error]', err);
     });
