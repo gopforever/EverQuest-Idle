@@ -118,7 +118,7 @@ export default function CharacterCreationScreen() {
     setRace(r);
     // If current class is not valid for the new race, auto-select the first valid class
     if (cls && !RACE_CLASS_COMBOS[r].includes(cls)) {
-      setCls(RACE_CLASS_COMBOS[r][0]);
+      setCls(RACE_CLASS_COMBOS[r][0] ?? null);
     }
   };
 
