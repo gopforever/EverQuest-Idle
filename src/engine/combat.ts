@@ -96,7 +96,7 @@ export function getWeaponDelay(gear: EquipmentSlots): number {
  */
 export function calcMaxHpForLevel(level: number, sta: number, cls: CharacterClass): number {
   const baseHp = 20 + level * 10;
-  const staBonus = Math.floor((sta - 75) / 3) * level;
+  const staBonus = sta > 75 ? Math.floor((sta - 75) / 3) * level : 0;
   const meleeClasses: CharacterClass[] = ['Warrior', 'Paladin', 'ShadowKnight', 'Monk'];
   const meleeBonus = meleeClasses.includes(cls) ? level * 2 : 0;
   return Math.max(1, baseHp + staBonus + meleeBonus);
@@ -110,14 +110,18 @@ export function calcMaxManaForLevel(level: number, wis: number, int: number, cls
   const priestClasses: CharacterClass[] = ['Cleric', 'Druid', 'Shaman'];
   const hybridClasses: CharacterClass[] = ['Paladin', 'ShadowKnight', 'Ranger', 'Bard'];
 
+  const intBonus = int > 75 ? Math.floor((int - 75) * level * 0.5) : 0;
+  const wisBonus = wis > 75 ? Math.floor((wis - 75) * level * 0.5) : 0;
+  const wisHybridBonus = wis > 75 ? Math.floor((wis - 75) * level * 0.25) : 0;
+
   if (casterClasses.includes(cls)) {
-    return Math.max(10, 10 + level * 10 + Math.floor((int - 75) * level * 0.5));
+    return Math.max(10, 10 + level * 10 + intBonus);
   }
   if (priestClasses.includes(cls)) {
-    return Math.max(10, 10 + level * 10 + Math.floor((wis - 75) * level * 0.5));
+    return Math.max(10, 10 + level * 10 + wisBonus);
   }
   if (hybridClasses.includes(cls)) {
-    return Math.max(10, 5 + level * 5 + Math.floor((wis - 75) * level * 0.25));
+    return Math.max(10, 5 + level * 5 + wisHybridBonus);
   }
   return 10;
 }
