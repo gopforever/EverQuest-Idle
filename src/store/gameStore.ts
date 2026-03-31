@@ -99,6 +99,7 @@ function makeGhost(index: number): GhostPlayer {
     recoveryTicksRemaining: 0,
     allies: [],
     rivals: [],
+    reputation: { killPoints: 0, craftPoints: 0, raidPoints: 0, tradingPoints: 0 },
   };
 }
 

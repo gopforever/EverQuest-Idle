@@ -1,9 +1,24 @@
 import { useState, useMemo } from 'react';
 import { useGameStore } from '../../store/gameStore';
-import type { GhostPlayer } from '../../types';
+import type { GhostPlayer, CharacterClass } from '../../types';
 
 type SortKey = 'name' | 'level' | 'class' | 'zone' | 'status';
 type SortDir = 'asc' | 'desc';
+
+function getClassRole(cls: CharacterClass): 'tank' | 'healer' | 'dps' | 'support' {
+  if (['Warrior', 'Paladin', 'ShadowKnight'].includes(cls as string)) return 'tank';
+  if (['Cleric', 'Druid', 'Shaman'].includes(cls as string)) return 'healer';
+  if (cls === 'Bard') return 'support';
+  return 'dps';
+}
+
+function RoleBadge({ cls }: { cls: CharacterClass }) {
+  const role = getClassRole(cls);
+  if (role === 'tank') return <span style={{ color: '#4488ff', fontWeight: 'bold', marginLeft: 2 }}>[T]</span>;
+  if (role === 'healer') return <span style={{ color: '#44cc44', fontWeight: 'bold', marginLeft: 2 }}>[H]</span>;
+  if (role === 'support') return <span style={{ color: '#cc88ff', fontWeight: 'bold', marginLeft: 2 }}>[S]</span>;
+  return null;
+}
 
 function sortGhosts(ghosts: GhostPlayer[], key: SortKey, dir: SortDir): GhostPlayer[] {
   return [...ghosts].sort((a, b) => {
@@ -132,9 +147,19 @@ export function WhoPanel() {
                   borderBottom: '1px solid #1a1510',
                 }}
               >
-                <td style={{ padding: '2px 4px' }}>{ghost.name}</td>
+                <td style={{ padding: '2px 4px', whiteSpace: 'nowrap' }}>
+                  {ghost.name}
+                  {ghost.reputation?.title && (
+                    <span style={{ color: '#aa8800', marginLeft: 4, fontSize: '10px' }}>
+                      [{ghost.reputation.title}]
+                    </span>
+                  )}
+                </td>
                 <td style={{ padding: '2px 4px', textAlign: 'center' }}>{ghost.level}</td>
-                <td style={{ padding: '2px 4px' }}>{ghost.class}</td>
+                <td style={{ padding: '2px 4px', whiteSpace: 'nowrap' }}>
+                  {ghost.class}
+                  <RoleBadge cls={ghost.class} />
+                </td>
                 <td style={{ padding: '2px 4px', maxWidth: '60px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {ghost.currentZone}
                 </td>
