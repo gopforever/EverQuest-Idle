@@ -11,6 +11,7 @@ import type {
   Race,
   CharacterClass,
   BazaarState,
+  GroupState,
 } from '../types';
 import { ZONES, STARTING_ZONE } from '../data/zones';
 import { processTick } from '../engine/tick';
@@ -69,6 +70,9 @@ function makeGhost(index: number): GhostPlayer {
     stats: defaultStats,
     plat: 0,
     achievements: [],
+    deathCount: 0,
+    skills: { '1HSlash': 5, Defense: 5, Offense: 5 },
+    recoveryTicksRemaining: 0,
   };
 }
 
@@ -150,6 +154,10 @@ interface GameStore extends GameState {
   listItemOnBazaar: (inventorySlot: number, pricePerUnit: number, quantity: number) => void;
   cancelBazaarListing: (listingId: string) => void;
   attemptTradeskillCombine: (recipeId: string) => void;
+  // Group actions
+  inviteGhost: (ghostId: string) => void;
+  kickGhost: (ghostId: string) => void;
+  disbandGroup: () => void;
 }
 
 const initialGhosts = Array.from({ length: 100 }, (_, i) => makeGhost(i));
@@ -157,6 +165,11 @@ const initialGhosts = Array.from({ length: 100 }, (_, i) => makeGhost(i));
 const initialBazaar: BazaarState = {
   listings: [],
   lastRefreshTick: 0,
+};
+
+const initialGroup: GroupState = {
+  members: [],
+  lootStyle: 'leader',
 };
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -171,6 +184,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     },
   ],
   ghosts: initialGhosts,
+  group: initialGroup,
   currentZone: STARTING_ZONE,
   tickCount: 0,
   gameStarted: false,
@@ -236,7 +250,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       player: playerUpdates.player ?? state.player,
       combat: playerUpdates.combat ?? state.combat,
       combatLog: playerUpdates.combatLog ?? state.combatLog,
-      ghosts: state.ghosts,
+      ghosts: playerUpdates.ghosts ?? state.ghosts,
+      group: state.group,
       currentZone: playerUpdates.currentZone ?? state.currentZone,
       tickCount: newTickCount,
       gameStarted: state.gameStarted,
@@ -301,6 +316,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         type: 'system',
       }],
       ghosts: Array.from({ length: 100 }, (_, i) => makeGhost(i)),
+      group: initialGroup,
       currentZone: STARTING_ZONE,
       tickCount: 0,
       gameStarted: false,
@@ -510,6 +526,70 @@ export const useGameStore = create<GameStore>((set, get) => ({
     get().addCombatLogEntry({
       message: result.logMessage,
       type: result.success ? 'loot' : 'system',
+    });
+  },
+
+  // ── Group actions ──────────────────────────────────────────────────────────
+
+  inviteGhost: (ghostId: string) => {
+    const { ghosts, group, player, combatLog } = get();
+    if (group.members.length >= 5) {
+      get().addCombatLogEntry({ message: 'Your group is full (max 5 members).', type: 'system' });
+      return;
+    }
+    const ghost = ghosts.find((g) => g.id === ghostId);
+    if (!ghost) return;
+    if (!ghost.isOnline) {
+      get().addCombatLogEntry({ message: `${ghost.name} is not online.`, type: 'system' });
+      return;
+    }
+    if (group.members.includes(ghostId)) {
+      get().addCombatLogEntry({ message: `${ghost.name} is already in your group.`, type: 'system' });
+      return;
+    }
+    const updatedGhosts = ghosts.map((g) =>
+      g.id !== ghostId ? g : { ...g, currentZone: player.currentZone }
+    );
+    const newEntry: CombatLogEntry = {
+      id: generateId(),
+      timestamp: Date.now(),
+      message: `${ghost.name} joins your group.`,
+      type: 'system',
+    };
+    set({
+      ghosts: updatedGhosts,
+      group: { ...group, members: [...group.members, ghostId] },
+      combatLog: [...combatLog, newEntry].slice(-200),
+    });
+  },
+
+  kickGhost: (ghostId: string) => {
+    const { ghosts, group, combatLog } = get();
+    const ghost = ghosts.find((g) => g.id === ghostId);
+    if (!ghost) return;
+    const newEntry: CombatLogEntry = {
+      id: generateId(),
+      timestamp: Date.now(),
+      message: `${ghost.name} has left the group.`,
+      type: 'system',
+    };
+    set({
+      group: { ...group, members: group.members.filter((id) => id !== ghostId) },
+      combatLog: [...combatLog, newEntry].slice(-200),
+    });
+  },
+
+  disbandGroup: () => {
+    const { group, combatLog } = get();
+    const newEntry: CombatLogEntry = {
+      id: generateId(),
+      timestamp: Date.now(),
+      message: 'The group has been disbanded.',
+      type: 'system',
+    };
+    set({
+      group: { ...group, members: [] },
+      combatLog: [...combatLog, newEntry].slice(-200),
     });
   },
 }));

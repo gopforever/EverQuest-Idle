@@ -1,8 +1,22 @@
 import type { GameState, GhostPlayer, CombatLogEntry } from '../types';
 import { ZONES } from '../data/zones';
 import { MONSTERS } from '../data/monsters';
-import { calcActualMeleeHit, calcHitChance, calcXpToNextLevel } from './combat';
+import {
+  calcActualMeleeHit,
+  calcHitChance,
+  calcXpToNextLevel,
+  calcNpcMaxHit,
+  calcMitigatedDamage,
+  calcWeaponSwingInterval,
+  getWeaponDamage,
+  getWeaponDelay,
+  calcMaxHpForLevel,
+  calcMaxManaForLevel,
+  calcDodgeChance,
+  calcDoubleAttackChance,
+} from './combat';
 import { calcBaseXp, applyClassModifier } from './xp';
+import { calcDeathXpLoss, calcBindPointHp, calcBindPointMana, isCasterClass } from './death';
 
 let _idCounter = 0;
 function generateId(): string {
@@ -21,17 +35,10 @@ interface GhostCombatState {
   monsterMaxHp: number;
   monsterLevel: number;
   monsterName: string;
+  lastSwingTick: number;
 }
 
 const ghostCombatMap = new Map<string, GhostCombatState>();
-
-// ── Constants ─────────────────────────────────────────────────────────────────
-
-/** Multiplier used to derive weapon damage from ghost level. */
-const GHOST_WEAPON_DAMAGE_MULTIPLIER = 0.8;
-
-/** Multiplier used to derive offense/defense skill values from level. */
-const SKILL_LEVEL_MULTIPLIER = 2;
 
 // ── Static data ───────────────────────────────────────────────────────────────
 
@@ -134,7 +141,12 @@ const ZONE_TRAVEL_CHANCE: Record<string, number> = {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function spawnMonsterForGhost(ghost: GhostPlayer): GhostCombatState | null {
+/** Cap a skill value: max(level × 5, 200). */
+function capGhostSkill(value: number, level: number): number {
+  return Math.min(200, Math.min(level * 5, value));
+}
+
+function spawnMonsterForGhost(ghost: GhostPlayer, tickCount: number): GhostCombatState | null {
   const zone = ZONES[ghost.currentZone];
   if (!zone || zone.monsters.length === 0) return null;
 
@@ -156,6 +168,7 @@ function spawnMonsterForGhost(ghost: GhostPlayer): GhostCombatState | null {
     monsterMaxHp,
     monsterLevel,
     monsterName: monster.name,
+    lastSwingTick: tickCount,
   };
 }
 
@@ -189,6 +202,17 @@ export function processGhostTick(
     }
 
     if (!g.isOnline) return g;
+
+    // ── Recovery countdown ────────────────────────────────────────────────
+    if (g.recoveryTicksRemaining > 0) {
+      const remaining = g.recoveryTicksRemaining - 1;
+      g = {
+        ...g,
+        recoveryTicksRemaining: remaining,
+        currentActivity: remaining === 0 ? 'Idle' : 'Recovering',
+      };
+      return g;
+    }
 
     // ── Ghost chat (0.3% chance per tick) ────────────────────────────────
     if (Math.random() < 0.003) {
@@ -234,48 +258,118 @@ export function processGhostTick(
     // Ensure a monster is active
     let cs = ghostCombatMap.get(g.id);
     if (!cs) {
-      const spawned = spawnMonsterForGhost(g);
+      const spawned = spawnMonsterForGhost(g, tickCount);
       if (!spawned) return g;
       cs = spawned;
       ghostCombatMap.set(g.id, cs);
     }
 
-    // Ghost attacks its monster
-    const weaponDamage = Math.max(2, Math.floor(g.level * GHOST_WEAPON_DAMAGE_MULTIPLIER));
-    const offenseSkill = g.level * SKILL_LEVEL_MULTIPLIER;
-    const defenseSkill = cs.monsterLevel * SKILL_LEVEL_MULTIPLIER;
+    // ── Ghost attacks its monster (weapon-delay gated) ────────────────────
+    const weaponDamage = getWeaponDamage(g.gear);
+    const weaponDelay = getWeaponDelay(g.gear);
+    const swingInterval = calcWeaponSwingInterval(weaponDelay);
+    const canSwing = tickCount - cs.lastSwingTick >= swingInterval;
+
+    const offenseSkill = g.skills['Offense'] ?? g.level * 2;
+    const defenseSkill = cs.monsterLevel * 2;
     const hitChance = calcHitChance(offenseSkill, defenseSkill);
 
-    if (Math.random() < hitChance) {
-      const dmg = calcActualMeleeHit(weaponDamage, g.level, g.stats.str);
-      cs = { ...cs, monsterHp: cs.monsterHp - dmg };
+    if (canSwing) {
+      cs = { ...cs, lastSwingTick: tickCount };
       ghostCombatMap.set(g.id, cs);
+
+      if (Math.random() < hitChance) {
+        const dmg = calcActualMeleeHit(weaponDamage, g.level, g.stats.str);
+        cs = { ...cs, monsterHp: cs.monsterHp - dmg };
+        ghostCombatMap.set(g.id, cs);
+
+        // Double attack proc
+        if (Math.random() < calcDoubleAttackChance(g.stats.dex, g.class)) {
+          const dmg2 = calcActualMeleeHit(weaponDamage, g.level, g.stats.str);
+          cs = { ...cs, monsterHp: cs.monsterHp - dmg2 };
+          ghostCombatMap.set(g.id, cs);
+        }
+      }
     }
 
-    // Monster killed?
+    // ── Monster attacks ghost back ────────────────────────────────────────
+    const npcMaxHit = calcNpcMaxHit(cs.monsterLevel);
+    const rawNpcDmg = Math.max(1, Math.floor(Math.random() * npcMaxHit) + 1);
+
+    // Dodge check
+    if (Math.random() < calcDodgeChance(g.stats.agi)) {
+      newEntries.push(makeLogEntry(`${g.name} dodges!`, 'miss'));
+    } else {
+      const mitigated = calcMitigatedDamage(rawNpcDmg, g.stats.ac, cs.monsterLevel);
+      const newHp = g.stats.hp - mitigated;
+      g = { ...g, stats: { ...g.stats, hp: newHp } };
+
+      // Defense skill gain when taking damage
+      const newSkills = { ...g.skills };
+      newSkills['Defense'] = capGhostSkill((newSkills['Defense'] ?? 0) + 1, g.level);
+      g = { ...g, skills: newSkills };
+
+      // Ghost death
+      if (g.stats.hp <= 0) {
+        newEntries.push(
+          makeLogEntry(`${g.name} has been slain by ${cs.monsterName}!`, 'death'),
+        );
+        const xpLost = calcDeathXpLoss(g.xpToNextLevel);
+        const newXp = Math.max(0, g.xp - xpLost);
+        if (xpLost > 0) {
+          newEntries.push(
+            makeLogEntry(`${g.name} loses ${xpLost} experience points.`, 'system'),
+          );
+        }
+        const bindHp = calcBindPointHp(g.stats.maxHp);
+        const bindMana = calcBindPointMana(g.stats.maxMana, isCasterClass(g.class));
+        g = {
+          ...g,
+          xp: newXp,
+          deathCount: g.deathCount + 1,
+          stats: { ...g.stats, hp: bindHp, mana: bindMana },
+          currentActivity: 'Recovering',
+          recoveryTicksRemaining: 30,
+        };
+        ghostCombatMap.delete(g.id);
+        return g;
+      }
+    }
+
+    // ── Monster killed? ───────────────────────────────────────────────────
     if (cs.monsterHp <= 0) {
       ghostCombatMap.delete(g.id);
 
+      // Determine group size for XP
+      const ghostInPlayerZone =
+        g.currentZone === state.player.currentZone && state.combat.autoAttacking;
+      const groupedGhostsInZone = ghostInPlayerZone
+        ? state.group.members.filter((mid) => {
+            const m = state.ghosts.find((gh) => gh.id === mid);
+            return m && m.currentZone === state.player.currentZone && m.recoveryTicksRemaining === 0;
+          }).length
+        : 0;
+      const groupSize = ghostInPlayerZone ? 1 + groupedGhostsInZone : 1;
+
       // XP gain
-      const baseXp = calcBaseXp(cs.monsterLevel, zone.zem, 1);
+      const baseXp = calcBaseXp(cs.monsterLevel, zone.zem, groupSize);
       const xpGained = applyClassModifier(baseXp, g.class);
 
       let newXp = g.xp + xpGained;
       let newLevel = g.level;
+      let newXpToNext = g.xpToNextLevel;
 
-      // Level-up loop (cap at 50)
-      while (newLevel < 50) {
+      // Level-up loop (cap at 60)
+      while (newLevel < 60) {
         const xpNeeded = calcXpToNextLevel(newLevel);
         if (newXp < xpNeeded) break;
         newXp -= xpNeeded;
         newLevel++;
+        newXpToNext = calcXpToNextLevel(newLevel);
 
-        // Recalculate HP/Mana on level-up
-        const newMaxHp = 20 + newLevel * 10 + Math.floor(g.stats.sta * 0.5);
-        const newMaxMana =
-          20 +
-          newLevel * 10 +
-          Math.floor(Math.max(g.stats.wis, g.stats.int) * 0.5);
+        // Recalculate HP/Mana using shared formulas
+        const newMaxHp = calcMaxHpForLevel(newLevel, g.stats.sta, g.class);
+        const newMaxMana = calcMaxManaForLevel(newLevel, g.stats.wis, g.stats.int, g.class);
         g = {
           ...g,
           stats: {
@@ -292,6 +386,12 @@ export function processGhostTick(
         );
       }
 
+      // Skill gain on kill
+      const killSkills = { ...g.skills };
+      killSkills['Offense'] = capGhostSkill((killSkills['Offense'] ?? 0) + 1, newLevel);
+      killSkills['1HSlash'] = capGhostSkill((killSkills['1HSlash'] ?? 0) + 1, newLevel);
+      g = { ...g, skills: killSkills };
+
       // Potential loot (50% chance)
       if (Math.random() < 0.5) {
         const lootName =
@@ -301,10 +401,10 @@ export function processGhostTick(
         );
       }
 
-      g = { ...g, xp: newXp, level: newLevel };
+      g = { ...g, xp: newXp, level: newLevel, xpToNextLevel: newXpToNext };
 
       // Spawn the next monster immediately
-      const next = spawnMonsterForGhost(g);
+      const next = spawnMonsterForGhost(g, tickCount);
       if (next) ghostCombatMap.set(g.id, next);
     }
 

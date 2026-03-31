@@ -230,6 +230,14 @@ export interface GhostPlayer {
   stats: CharacterStats;
   plat: number;
   achievements: string[];
+  deathCount: number;
+  skills: Record<string, number>;
+  recoveryTicksRemaining: number;
+}
+
+export interface GroupState {
+  members: string[];
+  lootStyle: 'roundRobin' | 'freeForAll' | 'leader';
 }
 
 export interface CombatLogEntry {
@@ -300,6 +308,7 @@ export interface GameState {
   combat: CombatState;
   combatLog: CombatLogEntry[];
   ghosts: GhostPlayer[];
+  group: GroupState;
   currentZone: Zone;
   tickCount: number;
   gameStarted: boolean;
