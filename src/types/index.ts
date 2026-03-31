@@ -229,6 +229,23 @@ export interface PlayerCharacter {
   deathCount: number; // total deaths for stat tracking
 }
 
+export type GhostGoalType =
+  | 'ReachLevel'
+  | 'FindGroup'
+  | 'FlipItems'
+  | 'CraftItem'
+  | 'ExploreZone'
+  | 'FarmItem'
+  | 'Recover';
+
+export interface GhostGoal {
+  type: GhostGoalType;
+  targetLevel?: number;      // for ReachLevel
+  targetZone?: string;       // for ExploreZone
+  targetItemId?: string;     // for FarmItem / CraftItem
+  progressTicks?: number;    // ticks spent on this goal
+}
+
 export interface GhostPlayer {
   id: string;
   name: string;
@@ -252,6 +269,10 @@ export interface GhostPlayer {
   memory?: string[];           // last N event strings this ghost experienced
   memorySummary?: string;      // LLM-compressed summary of past events
   llmCooldownUntilTick?: number; // don't call LLM again until this tick
+  currentGoal?: GhostGoal;
+  allies?: string[];           // ghost IDs this ghost considers friendly
+  rivals?: string[];           // ghost IDs this ghost dislikes
+  guildName?: string;
 }
 
 export interface GroupState {
@@ -322,6 +343,13 @@ export interface BazaarState {
   lastRefreshTick: number;
 }
 
+export interface ServerEvent {
+  id: string;
+  tick: number;
+  type: 'firstLevel60' | 'guildFormed' | 'raidKill' | 'massLogin' | 'milestone';
+  message: string;
+}
+
 export interface GameState {
   player: PlayerCharacter;
   combat: CombatState;
@@ -335,4 +363,5 @@ export interface GameState {
   bazaar: BazaarState;
   llmErrorCount: number;
   lastLlmError?: string;
+  serverEvents: ServerEvent[];
 }

@@ -1,4 +1,4 @@
-import type { GameState, GhostPlayer, CombatLogEntry, CharacterClass } from '../types';
+import type { GameState, GhostPlayer, CombatLogEntry, CharacterClass, GhostGoal, ServerEvent } from '../types';
 import { ZONES } from '../data/zones';
 import { MONSTERS } from '../data/monsters';
 import {
@@ -274,6 +274,62 @@ const CASTER_CLASSES: CharacterClass[] = [
   'Cleric', 'Druid', 'Shaman', 'Bard',
 ];
 
+// ── Guild name generation ─────────────────────────────────────────────────────
+
+const GUILD_PREFIXES = ['Eternal', 'Shadow', 'Iron', 'Ancient', 'Storm', 'Dark', 'Crimson', 'Silver'];
+const GUILD_SUFFIXES = ['Vanguard', 'Council', 'Brotherhood', 'Legion', 'Order', 'Covenant', 'Pact', 'Circle'];
+
+// ── Goal assignment ───────────────────────────────────────────────────────────
+
+function assignGoal(g: GhostPlayer): GhostGoal {
+  const p = g.personality;
+  const roll = Math.random();
+  switch (p) {
+    case 'Grinder':
+    case 'Loner':
+    case 'Addict':
+    case 'Speedrunner':
+    case 'Burnout':
+    case 'Veteran':
+      return { type: 'ReachLevel', targetLevel: g.level + 1, progressTicks: 0 };
+    case 'Tank':
+      return roll < 0.5
+        ? { type: 'ReachLevel', targetLevel: g.level + 1, progressTicks: 0 }
+        : { type: 'FindGroup', progressTicks: 0 };
+    case 'Healer':
+      return roll < 0.6
+        ? { type: 'FindGroup', progressTicks: 0 }
+        : { type: 'ReachLevel', targetLevel: g.level + 1, progressTicks: 0 };
+    case 'Social':
+      return { type: 'FindGroup', progressTicks: 0 };
+    case 'Merchant':
+    case 'Economist':
+      return { type: 'FlipItems', progressTicks: 0 };
+    case 'Tradeskiller':
+      return { type: 'CraftItem', progressTicks: 0 };
+    case 'Casual':
+    case 'NewPlayer':
+    case 'Returning':
+      return roll < 0.5
+        ? { type: 'ExploreZone', progressTicks: 0 }
+        : { type: 'ReachLevel', targetLevel: g.level + 1, progressTicks: 0 };
+    case 'AFKFarmer':
+    case 'NinjaLooter':
+    case 'KSer':
+    case 'CampStealer':
+      return { type: 'FarmItem', progressTicks: 0 };
+    case 'Drama':
+    case 'Conspiracy':
+    case 'Roleplayer':
+    case 'ForumWarrior':
+    case 'GuildOfficer':
+    case 'Pacifist':
+      return { type: 'ExploreZone', progressTicks: 0 };
+    default:
+      return { type: 'ReachLevel', targetLevel: g.level + 1, progressTicks: 0 };
+  }
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 /** Cap a skill value: max(level × 5, 200). */
@@ -333,8 +389,13 @@ export function processGhostTick(
   tickCount: number,
 ): Partial<GameState> {
   const newEntries: CombatLogEntry[] = [];
+  const newServerEvents: ServerEvent[] = [];
+  let newLoginsThisTick = 0;
 
-  const updatedGhosts = state.ghosts.map((ghost) => {
+  // Early server rush: higher login probability for the first 500 ticks
+  const loginChance = tickCount < 500 ? 0.15 : 0.05;
+
+  let updatedGhosts = state.ghosts.map((ghost) => {
     let g = { ...ghost };
 
     // ── Online/Offline cycling (every 120 ticks) ──────────────────────────
@@ -344,9 +405,15 @@ export function processGhostTick(
         ghostCombatMap.delete(g.id);
         newEntries.push(makeLogEntry(`${g.name} has logged out.`, 'system'));
         return g;
-      } else if (!g.isOnline && Math.random() < 0.05) {
+      } else if (!g.isOnline && Math.random() < loginChance) {
         g = { ...g, isOnline: true, currentActivity: 'Idle' };
         newEntries.push(makeLogEntry(`${g.name} has entered the world.`, 'system'));
+        newLoginsThisTick++;
+      }
+
+      // Tradeskiller crafting flavor (10% chance to avoid spam)
+      if (g.isOnline && g.personality === 'Tradeskiller' && Math.random() < 0.1) {
+        newEntries.push(makeLogEntry(`${g.name} combines ingredients at the forge.`, 'system'));
       }
     }
 
@@ -373,6 +440,13 @@ export function processGhostTick(
     else if (g.xp > 0 && g.xp > g.xpToNextLevel * 0.95) mood = 'euphoric';
     else if (g.currentActivity === 'Idle' && Math.random() < 0.3) mood = 'bored';
     g = { ...g, mood };
+
+    // ── Goal assignment / update ──────────────────────────────────────────
+    if (!g.currentGoal || (g.currentGoal.progressTicks ?? 0) > 300) {
+      g = { ...g, currentGoal: assignGoal(g) };
+    } else {
+      g = { ...g, currentGoal: { ...g.currentGoal, progressTicks: (g.currentGoal.progressTicks ?? 0) + 1 } };
+    }
 
     // ── Ghost chat (0.3% chance per tick) ────────────────────────────────
     if (Math.random() < 0.003) {
@@ -405,7 +479,12 @@ export function processGhostTick(
 
     // ── Zone travel (every 60 ticks) ─────────────────────────────────────
     if (tickCount % 60 === 0) {
-      const travelChance = ZONE_TRAVEL_CHANCE[g.personality] ?? 0.10;
+      let travelChance = ZONE_TRAVEL_CHANCE[g.personality] ?? 0.10;
+      // Goal influence on zone travel
+      if (g.currentGoal?.type === 'ReachLevel') travelChance *= 0.5;
+      else if (g.currentGoal?.type === 'FindGroup') travelChance *= 1.5;
+      else if (g.currentGoal?.type === 'ExploreZone') travelChance = 1.0;
+
       if (Math.random() < travelChance) {
         const currentZoneData = ZONES[g.currentZone];
         if (currentZoneData && currentZoneData.connectsTo.length > 0) {
@@ -428,6 +507,11 @@ export function processGhostTick(
             }
           }
         }
+      }
+
+      // Merchant Bazaar restocking flavor (20% chance to avoid spam)
+      if (g.personality === 'Merchant' && (g.plat ?? 0) > 500 && Math.random() < 0.2) {
+        newEntries.push(makeLogEntry(`${g.name} is buying cheap at the Bazaar.`, 'system'));
       }
     }
 
@@ -599,7 +683,22 @@ export function processGhostTick(
         );
       }
 
+      // Coin drop: store as copper total in plat field
+      const copperDrop = Math.floor(Math.random() * cs.monsterLevel * 2);
+      g = { ...g, plat: (g.plat ?? 0) + copperDrop };
+
       g = { ...g, xp: newXp, level: newLevel, xpToNextLevel: newXpToNext };
+
+      // First ghost to reach level 60
+      if (newLevel === 60 && !(state.serverEvents ?? []).some(e => e.type === 'firstLevel60')) {
+        newServerEvents.push({
+          id: generateId(),
+          tick: tickCount,
+          type: 'firstLevel60',
+          message: `${g.name} is the first player to reach level 60! Norrath bows before them.`,
+        });
+        newEntries.push(makeLogEntry(`*** ${g.name} has reached the maximum level! ***`, 'system'));
+      }
 
       // Spawn the next monster immediately
       const next = spawnMonsterForGhost(g, tickCount);
@@ -609,10 +708,108 @@ export function processGhostTick(
     return g;
   });
 
+  // ── Social graph pass (every 30 ticks) ───────────────────────────────────
+  if (tickCount % 30 === 0) {
+    // Build zone → ghost IDs map for online ghosts
+    const zoneMap = new Map<string, string[]>();
+    for (const g of updatedGhosts) {
+      if (!g.isOnline) continue;
+      const arr = zoneMap.get(g.currentZone) ?? [];
+      arr.push(g.id);
+      zoneMap.set(g.currentZone, arr);
+    }
+
+    const ghostById = new Map(updatedGhosts.map((g) => [g.id, g]));
+
+    // Ally formation: 0.1% chance per co-zone pair; max 5 allies each
+    const chaosPersonalities = new Set(['KSer', 'NinjaLooter', 'CampStealer']);
+    for (const gids of zoneMap.values()) {
+      if (gids.length < 2) continue;
+      for (let i = 0; i < gids.length - 1; i++) {
+        for (let j = i + 1; j < gids.length; j++) {
+          if (Math.random() < 0.001) {
+            const g1 = ghostById.get(gids[i]);
+            const g2 = ghostById.get(gids[j]);
+            if (!g1 || !g2) continue;
+            const allies1 = g1.allies ?? [];
+            const allies2 = g2.allies ?? [];
+            if (!allies1.includes(g2.id) && allies1.length < 5 && allies2.length < 5) {
+              ghostById.set(g1.id, { ...g1, allies: [...allies1, g2.id] });
+              ghostById.set(g2.id, { ...g2, allies: [...allies2, g1.id] });
+            }
+          }
+        }
+      }
+
+      // Rival formation: 1% chance for chaotic personalities
+      for (const gid of gids) {
+        const g = ghostById.get(gid);
+        if (!g || !chaosPersonalities.has(g.personality)) continue;
+        if (Math.random() < 0.01) {
+          const rivals = g.rivals ?? [];
+          if (rivals.length >= 5) continue;
+          const otherIds = gids.filter((id) => id !== gid && !rivals.includes(id));
+          if (otherIds.length === 0) continue;
+          const rivalId = otherIds[Math.floor(Math.random() * otherIds.length)];
+          const rivalGhost = ghostById.get(rivalId);
+          if (!rivalGhost) continue;
+          newEntries.push(
+            makeLogEntry(`${g.name} has made an enemy of ${rivalGhost.name}!`, 'system'),
+          );
+          ghostById.set(gid, { ...g, rivals: [...rivals, rivalId] });
+        }
+      }
+    }
+
+    // Guild formation: 3+ allies, level >= 10, Tank/Healer/Social, 0.5% chance
+    const guildFormers = ['Tank', 'Healer', 'Social'];
+    for (const ghost of ghostById.values()) {
+      if (ghost.guildName) continue;
+      const allies = ghost.allies ?? [];
+      if (
+        allies.length >= 3 &&
+        ghost.level >= 10 &&
+        guildFormers.includes(ghost.personality) &&
+        Math.random() < 0.005
+      ) {
+        const prefix = GUILD_PREFIXES[Math.floor(Math.random() * GUILD_PREFIXES.length)];
+        const suffix = GUILD_SUFFIXES[Math.floor(Math.random() * GUILD_SUFFIXES.length)];
+        const guildName = `${prefix} ${suffix}`;
+        ghostById.set(ghost.id, { ...ghost, guildName });
+        for (const allyId of allies) {
+          const ally = ghostById.get(allyId);
+          if (ally && !ally.guildName) ghostById.set(allyId, { ...ally, guildName });
+        }
+        newEntries.push(
+          makeLogEntry(`<${guildName}> has been formed by ${ghost.name}!`, 'system'),
+        );
+        newServerEvents.push({
+          id: generateId(),
+          tick: tickCount,
+          type: 'guildFormed',
+          message: `<${guildName}> has been formed by ${ghost.name}!`,
+        });
+      }
+    }
+
+    updatedGhosts = Array.from(ghostById.values());
+  }
+
+  // Mass login event
+  if (tickCount < 500 && newLoginsThisTick >= 10) {
+    newServerEvents.push({
+      id: generateId(),
+      tick: tickCount,
+      type: 'massLogin',
+      message: 'The server is filling up! Adventurers are flooding into Norrath.',
+    });
+  }
+
   const updatedLog = [...state.combatLog, ...newEntries].slice(-50);
 
   return {
     ghosts: updatedGhosts,
     combatLog: updatedLog,
+    serverEvents: [...(state.serverEvents ?? []), ...newServerEvents].slice(-20),
   };
 }

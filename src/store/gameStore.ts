@@ -48,6 +48,28 @@ const GHOST_PERSONALITIES = [
   'Conspiracy', 'Roleplayer', 'ForumWarrior', 'GuildOfficer', 'Economist', 'Speedrunner', 'Pacifist', 'Veteran',
 ] as const;
 
+const RACE_HOME_ZONE: Partial<Record<Race, string[]>> = {
+  Human:    ['qeynos', 'north_freeport'],
+  Barbarian:['halas'],
+  Erudite:  ['erudin', 'paineel'],
+  WoodElf:  ['kelethin'],
+  HighElf:  ['felwithe_north'],
+  DarkElf:  ['neriak_commons'],
+  HalfElf:  ['qeynos', 'north_freeport'],
+  Dwarf:    ['kaladim_north'],
+  Troll:    ['west_commonlands'],
+  Ogre:     ['west_commonlands'],
+  Halfling: ['rivervale'],
+  Gnome:    ['akanon'],
+};
+
+function getGhostStartingZone(race: Race): string {
+  const options = RACE_HOME_ZONE[race];
+  if (!options || options.length === 0) return 'west_commonlands';
+  const zoneId = options[Math.floor(Math.random() * options.length)];
+  return ZONES[zoneId] ? zoneId : 'west_commonlands';
+}
+
 function makeGhost(index: number): GhostPlayer {
   const pair = ALL_RACE_CLASS_PAIRS[index % ALL_RACE_CLASS_PAIRS.length];
   const race = pair.race;
@@ -64,7 +86,7 @@ function makeGhost(index: number): GhostPlayer {
     xpToNextLevel: calcXpToNextLevel(1),
     personality,
     isOnline: Math.random() > 0.4,
-    currentZone: 'qeynos_hills',
+    currentZone: getGhostStartingZone(race),
     currentActivity: 'Idle',
     gear: buildStartingGear(race, cls),
     stats,
@@ -73,6 +95,8 @@ function makeGhost(index: number): GhostPlayer {
     deathCount: 0,
     skills: { '1H Slashing': 5, Defense: 5, Offense: 5 },
     recoveryTicksRemaining: 0,
+    allies: [],
+    rivals: [],
   };
 }
 
@@ -172,6 +196,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   bazaar: initialBazaar,
   llmErrorCount: 0,
   lastLlmError: undefined,
+  serverEvents: [],
 
   startGame: () => set({ gameStarted: true }),
 
@@ -277,6 +302,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       bazaar: state.bazaar,
       llmErrorCount: state.llmErrorCount,
       lastLlmError: state.lastLlmError,
+      serverEvents: state.serverEvents ?? [],
     };
     const ghostUpdates = processGhostTick(stateAfterPlayer, stateAfterPlayer.tickCount);
 
@@ -348,6 +374,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       gameStarted: false,
       characterCreated: false,
       bazaar: initialBazaar,
+      serverEvents: [],
     });
   },
 
