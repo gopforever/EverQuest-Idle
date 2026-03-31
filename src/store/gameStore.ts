@@ -63,7 +63,6 @@ function makeGhost(index: number): GhostPlayer {
     level: 1,
     xp: 0,
     xpToNextLevel: calcXpToNextLevel(1),
-    currentHp: stats.maxHp,
     personality,
     isOnline: Math.random() > 0.4,
     currentZone: 'qeynos_hills',

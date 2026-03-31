@@ -1,4 +1,4 @@
-import type { GameState, GhostPlayer, CombatLogEntry } from '../types';
+import type { GameState, GhostPlayer, CombatLogEntry, CharacterClass } from '../types';
 import { ZONES } from '../data/zones';
 import { MONSTERS } from '../data/monsters';
 import {
@@ -139,11 +139,32 @@ const ZONE_TRAVEL_CHANCE: Record<string, number> = {
   Loner: 0.10,
 };
 
+// ── Caster classes (same list as RightPanel.tsx) ─────────────────────────────
+
+const CASTER_CLASSES: CharacterClass[] = [
+  'Wizard', 'Magician', 'Enchanter', 'Necromancer',
+  'Cleric', 'Druid', 'Shaman', 'Bard',
+];
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 /** Cap a skill value: max(level × 5, 200). */
 function capGhostSkill(value: number, level: number): number {
   return Math.min(200, Math.min(level * 5, value));
+}
+
+/** Apply one tick of out-of-combat HP/mana regen (2% of max, min 1). */
+function applyOutOfCombatRegen(g: GhostPlayer): GhostPlayer {
+  const regenHp = Math.max(1, Math.floor(g.stats.maxHp * 0.02));
+  const regenMana = Math.max(1, Math.floor(g.stats.maxMana * 0.02));
+  return {
+    ...g,
+    stats: {
+      ...g.stats,
+      hp: Math.min(g.stats.maxHp, g.stats.hp + regenHp),
+      mana: Math.min(g.stats.maxMana, g.stats.mana + regenMana),
+    },
+  };
 }
 
 function spawnMonsterForGhost(ghost: GhostPlayer, tickCount: number): GhostCombatState | null {
@@ -206,6 +227,8 @@ export function processGhostTick(
     // ── Recovery countdown ────────────────────────────────────────────────
     if (g.recoveryTicksRemaining > 0) {
       const remaining = g.recoveryTicksRemaining - 1;
+      // Regen HP/mana while recovering (not fighting)
+      g = applyOutOfCombatRegen(g);
       g = {
         ...g,
         recoveryTicksRemaining: remaining,
@@ -251,7 +274,11 @@ export function processGhostTick(
 
     // ── Ghost combat ──────────────────────────────────────────────────────
     const zone = ZONES[g.currentZone];
-    if (!zone || zone.monsters.length === 0) return g;
+    if (!zone || zone.monsters.length === 0) {
+      // Not fighting — apply out-of-combat HP/mana regen
+      g = applyOutOfCombatRegen(g);
+      return g;
+    }
 
     g = { ...g, currentActivity: 'Fighting' };
 
@@ -289,6 +316,15 @@ export function processGhostTick(
           cs = { ...cs, monsterHp: cs.monsterHp - dmg2 };
           ghostCombatMap.set(g.id, cs);
         }
+      }
+
+      // ── Caster spell attack ───────────────────────────────────────────
+      if (CASTER_CLASSES.includes(g.class) && g.stats.mana > 0) {
+        const spellDmg = g.level * 2;
+        const manaCost = Math.min(g.stats.mana, g.level * 3);
+        cs = { ...cs, monsterHp: cs.monsterHp - spellDmg };
+        ghostCombatMap.set(g.id, cs);
+        g = { ...g, stats: { ...g.stats, mana: Math.max(0, g.stats.mana - manaCost) } };
       }
     }
 
