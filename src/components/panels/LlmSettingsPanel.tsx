@@ -45,7 +45,7 @@ export function LlmSettingsPanel() {
         style={{ borderColor: 'var(--eq-border)', backgroundColor: '#1a1510' }}
       >
         <span style={{ color: 'var(--eq-text-dim)' }}>Model</span>
-        <span style={{ color: 'var(--eq-gold)' }}>openai/gpt-5.4-mini</span>
+        <span style={{ color: 'var(--eq-gold)' }}>openai/gpt-4.1-mini</span>
       </div>
 
       {/* Info section */}
@@ -53,7 +53,7 @@ export function LlmSettingsPanel() {
         className="p-2 rounded border text-xs leading-relaxed"
         style={{ borderColor: 'var(--eq-border)', backgroundColor: '#1a1510', color: 'var(--eq-text-dim)' }}
       >
-        Ghost agents generate contextual chat powered by GPT-5.4 Mini via Vercel AI Gateway.
+        Ghost agents generate contextual chat powered by GPT-4.1 Mini via Vercel AI Gateway.
         3 ghosts are called every 50 ticks. Each call costs ~$0.0001.
       </div>
 
