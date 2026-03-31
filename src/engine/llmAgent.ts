@@ -119,7 +119,7 @@ export async function runLlmAgentQueue(
           model: ghostModel,
           system: buildSystemPrompt(ghost),
           prompt: buildUserPrompt(ghost, worldEvents),
-          maxTokens: 80,
+          maxOutputTokens: 80,
         });
 
         const trimmed = text.trim();

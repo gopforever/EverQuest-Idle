@@ -9,8 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@ai-sdk/gateway": "^4.0.0-beta.25",
-    "ai": "^4.3.19",
+    "@ai-sdk/gateway": "^2.0.0",
+    "ai": "^5.0.0",
     "localforage": "^1.10.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
