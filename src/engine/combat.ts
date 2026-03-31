@@ -1,4 +1,4 @@
-import type { CharacterClass } from '../types';
+import type { CharacterClass, EquipmentSlots } from '../types';
 
 // Melee damage formula:
 // Max Hit = (Weapon Damage × Player Level) / 5
@@ -77,4 +77,77 @@ export function calcOffhandHit(weaponDamage: number, playerLevel: number, str: n
   const maxHit = Math.floor(calcMeleeMaxHit(weaponDamage, playerLevel, str) * 0.5);
   const dexBonus = dex > 75 ? Math.floor((dex - 75) / 15) : 0;
   return Math.max(1, Math.floor(Math.random() * Math.max(1, maxHit + dexBonus)) + 1);
+}
+
+/**
+ * Derive ghost weapon damage from gear (same as player).
+ * Falls back to level-scaled baseline if no weapon equipped.
+ */
+export function getWeaponDamage(gear: EquipmentSlots): number {
+  return gear['Primary']?.stats?.damage ?? 3;
+}
+
+export function getWeaponDelay(gear: EquipmentSlots): number {
+  return gear['Primary']?.stats?.delay ?? 25;
+}
+
+/**
+ * Recalculate maxHp on level-up — same formula for player and ghost.
+ */
+export function calcMaxHpForLevel(level: number, sta: number, cls: CharacterClass): number {
+  const baseHp = 20 + level * 10;
+  const staBonus = sta > 75 ? Math.floor((sta - 75) / 3) * level : 0;
+  const meleeClasses: CharacterClass[] = ['Warrior', 'Paladin', 'ShadowKnight', 'Monk'];
+  const meleeBonus = meleeClasses.includes(cls) ? level * 2 : 0;
+  return Math.max(1, baseHp + staBonus + meleeBonus);
+}
+
+/**
+ * Recalculate maxMana on level-up — same formula for player and ghost.
+ */
+export function calcMaxManaForLevel(level: number, wis: number, int: number, cls: CharacterClass): number {
+  const casterClasses: CharacterClass[] = ['Wizard', 'Magician', 'Enchanter', 'Necromancer'];
+  const priestClasses: CharacterClass[] = ['Cleric', 'Druid', 'Shaman'];
+  const hybridClasses: CharacterClass[] = ['Paladin', 'ShadowKnight', 'Ranger', 'Bard'];
+
+  const intBonus = int > 75 ? Math.floor((int - 75) * level * 0.5) : 0;
+  const wisBonus = wis > 75 ? Math.floor((wis - 75) * level * 0.5) : 0;
+  const wisHybridBonus = wis > 75 ? Math.floor((wis - 75) * level * 0.25) : 0;
+
+  if (casterClasses.includes(cls)) {
+    return Math.max(10, 10 + level * 10 + intBonus);
+  }
+  if (priestClasses.includes(cls)) {
+    return Math.max(10, 10 + level * 10 + wisBonus);
+  }
+  if (hybridClasses.includes(cls)) {
+    return Math.max(10, 5 + level * 5 + wisHybridBonus);
+  }
+  return 10;
+}
+
+/**
+ * AGI-based dodge chance — 5% base + 0.1% per AGI above 75, capped at 30%.
+ */
+export function calcDodgeChance(agi: number): number {
+  const base = 0.05;
+  const bonus = agi > 75 ? (agi - 75) * 0.001 : 0;
+  return Math.min(0.30, base + bonus);
+}
+
+/**
+ * DEX-based double-attack proc chance for eligible classes.
+ */
+export function calcDoubleAttackChance(dex: number, cls: CharacterClass): number {
+  const eligible: CharacterClass[] = ['Warrior', 'Monk', 'Rogue', 'Ranger'];
+  if (!eligible.includes(cls)) return 0;
+  return Math.min(0.30, Math.max(0, (dex - 70) * 0.002));
+}
+
+/**
+ * Aggro weight — Warriors and Paladins generate more hate.
+ */
+export function getAggroWeight(cls: CharacterClass): number {
+  const highAggro: CharacterClass[] = ['Warrior', 'Paladin'];
+  return highAggro.includes(cls) ? 2.0 : 1.0;
 }

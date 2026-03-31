@@ -1,4 +1,4 @@
-import type { GameState, CombatLogEntry, Monster, Zone, Item } from '../types';
+import type { GameState, CombatLogEntry, Monster, Zone, Item, GhostPlayer, CharacterClass } from '../types';
 import {
   calcActualMeleeHit,
   calcHitChance,
@@ -7,8 +7,13 @@ import {
   calcXpToNextLevel,
   getClassXpModifier,
   calcWeaponSwingInterval,
+  getWeaponDamage,
+  getWeaponDelay,
+  calcDodgeChance,
+  calcDoubleAttackChance,
+  getAggroWeight,
 } from './combat';
-import { calcBaseXp } from './xp';
+import { calcBaseXp, applyClassModifier } from './xp';
 import { calcDeathXpLoss, calcBindPointHp, calcBindPointMana, isCasterClass } from './death';
 import { MONSTERS } from '../data/monsters';
 import { ITEMS } from '../data/items';
@@ -57,6 +62,9 @@ function capSkill(value: number, playerLevel: number): number {
 // Damage threshold above which a weapon is treated as two-handed for skill gain purposes
 const WEAPON_2H_DAMAGE_THRESHOLD = 10;
 
+// Per-ghost last swing tick for group combat (module-scope map)
+const groupGhostLastSwing = new Map<string, number>();
+
 export function processTick(state: GameState): Partial<GameState> {
   const newLog: CombatLogEntry[] = [];
   let { player, combat, tickCount, currentZone } = state;
@@ -81,6 +89,17 @@ export function processTick(state: GameState): Partial<GameState> {
   // ── Auto-combat active ───────────────────────────────────────────────────
   let { currentMonster, monsterCurrentHp } = combat;
   let currentMonsterLevel = combat.currentMonsterLevel;
+
+  // ── Resolve active group members in player's zone ─────────────────────────
+  let updatedGhosts: GhostPlayer[] = [...state.ghosts];
+  const activeGroupMembers: GhostPlayer[] = state.group.members
+    .map((id) => state.ghosts.find((g) => g.id === id))
+    .filter((g): g is GhostPlayer =>
+      g !== undefined &&
+      g.isOnline &&
+      g.currentZone === player.currentZone &&
+      g.recoveryTicksRemaining === 0
+    );
 
   // Spawn a monster if none active
   if (!currentMonster) {
@@ -137,6 +156,12 @@ export function processTick(state: GameState): Partial<GameState> {
       newLog.push(
         makeLogEntry(`You hit ${currentMonster.name} for ${dmg} damage.`, 'hit')
       );
+      // Double attack
+      if (Math.random() < calcDoubleAttackChance(player.stats.dex, player.class as CharacterClass)) {
+        const dmg2 = calcActualMeleeHit(weaponDamage, player.level, player.stats.str);
+        monsterCurrentHp = monsterCurrentHp - dmg2;
+        newLog.push(makeLogEntry(`You double attack ${currentMonster.name} for ${dmg2} damage.`, 'hit'));
+      }
     } else {
       newLog.push(
         makeLogEntry(`You try to hit ${currentMonster.name}, but miss!`, 'miss')
@@ -144,17 +169,99 @@ export function processTick(state: GameState): Partial<GameState> {
     }
   }
 
+  // ── Grouped ghosts attack the same monster ────────────────────────────────
+  if (monsterCurrentHp > 0) {
+    for (const g of activeGroupMembers) {
+      const gWeaponDmg = getWeaponDamage(g.gear);
+      const gWeaponDelay = getWeaponDelay(g.gear);
+      const gSwingInterval = calcWeaponSwingInterval(gWeaponDelay);
+      const gLastSwing = groupGhostLastSwing.get(g.id) ?? 0;
+      const gCanSwing = tickCount - gLastSwing >= gSwingInterval;
+
+      if (gCanSwing) {
+        groupGhostLastSwing.set(g.id, tickCount);
+        const gOffense = g.skills['1HSlash'] ?? g.level * 2;
+        const gHitChance = calcHitChance(gOffense, defenseSkill);
+
+        if (Math.random() < gHitChance) {
+          const gDmg = calcActualMeleeHit(gWeaponDmg, g.level, g.stats.str);
+          monsterCurrentHp -= gDmg;
+          newLog.push(makeLogEntry(`${g.name} hits ${currentMonster.name} for ${gDmg} damage.`, 'hit'));
+          // Double attack proc
+          if (Math.random() < calcDoubleAttackChance(g.stats.dex, g.class)) {
+            const gDmg2 = calcActualMeleeHit(gWeaponDmg, g.level, g.stats.str);
+            monsterCurrentHp -= gDmg2;
+            newLog.push(makeLogEntry(`${g.name} double attacks ${currentMonster.name} for ${gDmg2} damage.`, 'hit'));
+          }
+        } else {
+          newLog.push(makeLogEntry(`${g.name} misses ${currentMonster.name}.`, 'miss'));
+        }
+      }
+    }
+  }
+
+  // ── Healer ghosts in group heal lowest-HP member each tick (30% proc) ─────
+  if (monsterCurrentHp > 0) {
+    const healerClasses: CharacterClass[] = ['Cleric', 'Druid', 'Shaman'];
+    for (const healer of activeGroupMembers) {
+      if (!healerClasses.includes(healer.class)) continue;
+      if (Math.random() >= 0.30) continue;
+
+      const healAmt = Math.floor(healer.stats.maxMana * 0.05);
+
+      // Find lowest-HP member among player + grouped ghosts
+      const candidates: Array<{ name: string; hp: number; maxHp: number; isPlayer: boolean; ghostId?: string }> = [
+        { name: player.name, hp: player.stats.hp, maxHp: player.stats.maxHp, isPlayer: true },
+        ...activeGroupMembers
+          .filter((gm) => gm.id !== healer.id)
+          .map((gm) => ({ name: gm.name, hp: gm.stats.hp, maxHp: gm.stats.maxHp, isPlayer: false, ghostId: gm.id })),
+      ];
+
+      const target = candidates.reduce((a, b) =>
+        a.hp / a.maxHp < b.hp / b.maxHp ? a : b
+      );
+
+      if (target.isPlayer) {
+        player = {
+          ...player,
+          stats: { ...player.stats, hp: Math.min(player.stats.maxHp, player.stats.hp + healAmt) },
+        };
+      } else if (target.ghostId) {
+        updatedGhosts = updatedGhosts.map((gh) => {
+          if (gh.id !== target.ghostId) return gh;
+          return { ...gh, stats: { ...gh.stats, hp: Math.min(gh.stats.maxHp, gh.stats.hp + healAmt) } };
+        });
+      }
+      newLog.push(makeLogEntry(`${healer.name} heals ${target.name} for ${healAmt}.`, 'hit'));
+    }
+  }
+
   // ── Monster killed? ──────────────────────────────────────────────────────
   if (monsterCurrentHp <= 0) {
     const zem = currentZone.zem;
-    // XP formula: floor((npcLevel² × zem) / (5 × groupSize)) × classModifier
-    // groupSize hardcoded to 1 for solo play; update when group mechanics arrive
-    const baseXp = calcBaseXp(npcLevel, zem, 1);
+    const groupSize = 1 + activeGroupMembers.length;
+    const baseXp = calcBaseXp(npcLevel, zem, groupSize);
     const classModifier = getClassXpModifier(player.class);
     const xpGained = Math.floor(baseXp * classModifier);
 
     newLog.push(makeLogEntry(`You have slain ${currentMonster.name}!`, 'death'));
     newLog.push(makeLogEntry(`You gain ${xpGained} experience points.`, 'xp'));
+
+    // ── Grouped ghost XP shares ──────────────────────────────────────────
+    updatedGhosts = updatedGhosts.map((g) => {
+      if (!activeGroupMembers.some((am) => am.id === g.id)) return g;
+      const ghostXp = applyClassModifier(baseXp, g.class);
+      let newXp = g.xp + ghostXp;
+      let newLevel = g.level;
+      let newXpToNext = g.xpToNextLevel;
+      while (newLevel < 60 && newXp >= newXpToNext) {
+        newXp -= newXpToNext;
+        newLevel++;
+        newXpToNext = calcXpToNextLevel(newLevel);
+        newLog.push(makeLogEntry(`${g.name} has reached level ${newLevel}!`, 'system'));
+      }
+      return { ...g, xp: newXp, level: newLevel, xpToNextLevel: newXpToNext };
+    });
 
     // ── Skill gain on kill ───────────────────────────────────────────────
     const newSkills = { ...player.skills };
@@ -250,60 +357,145 @@ export function processTick(state: GameState): Partial<GameState> {
       currentMonsterLevel: 0,
     };
   } else {
-    // ── Monster attacks player ───────────────────────────────────────────
+    // ── Monster picks attack target from group (weighted by aggro) ────────
+    // Candidates: player + active group members
+    interface AggroCandidate {
+      name: string;
+      weight: number;
+      isPlayer: boolean;
+      ghostId?: string;
+    }
+    const aggroCandidates: AggroCandidate[] = [
+      { name: player.name, weight: getAggroWeight(player.class as CharacterClass), isPlayer: true },
+      ...activeGroupMembers.map((g) => ({
+        name: g.name,
+        weight: getAggroWeight(g.class),
+        isPlayer: false,
+        ghostId: g.id,
+      })),
+    ];
+
+    const totalWeight = aggroCandidates.reduce((sum, c) => sum + c.weight, 0);
+    let roll = Math.random() * totalWeight;
+    let attackTarget = aggroCandidates[0];
+    for (const candidate of aggroCandidates) {
+      roll -= candidate.weight;
+      if (roll <= 0) {
+        attackTarget = candidate;
+        break;
+      }
+    }
+
     const npcMaxHit = calcNpcMaxHit(npcLevel);
     const npcDmg = Math.max(1, Math.floor(Math.random() * npcMaxHit) + 1);
-    const mitigated = calcMitigatedDamage(npcDmg, player.stats.ac, npcLevel);
-    const newHp = player.stats.hp - mitigated;
 
-    newLog.push(
-      makeLogEntry(
-        `${currentMonster.name} hits YOU for ${mitigated} damage.`,
-        'hit'
-      )
-    );
+    if (attackTarget.isPlayer) {
+      // ── Monster attacks player ─────────────────────────────────────────
+      const mitigated = calcMitigatedDamage(npcDmg, player.stats.ac, npcLevel);
+      const newHp = player.stats.hp - mitigated;
 
-    // Defense skill increments when the monster successfully hits the player
-    const newSkillsOnHit = { ...player.skills };
-    newSkillsOnHit['Defense'] = capSkill((newSkillsOnHit['Defense'] ?? 0) + 1, player.level);
+      newLog.push(
+        makeLogEntry(
+          `${currentMonster.name} hits YOU for ${mitigated} damage.`,
+          'hit'
+        )
+      );
 
-    if (newHp <= 0) {
-      // ── Full death flow ──────────────────────────────────────────────
-      const xpLost = calcDeathXpLoss(player.xpToNextLevel);
-      const newXp = Math.max(0, player.xp - xpLost);
-      const bindHp = calcBindPointHp(player.stats.maxHp);
-      const bindMana = calcBindPointMana(player.stats.maxMana, isCasterClass(player.class));
+      // Defense skill increments when the monster successfully hits the player
+      const newSkillsOnHit = { ...player.skills };
+      newSkillsOnHit['Defense'] = capSkill((newSkillsOnHit['Defense'] ?? 0) + 1, player.level);
 
-      newLog.push(makeLogEntry(`You have been slain by ${currentMonster.name}!`, 'death'));
-      newLog.push(makeLogEntry(`You lose ${xpLost} experience points.`, 'system'));
-      newLog.push(makeLogEntry('You have been transported to your bind point.', 'system'));
-      newLog.push(makeLogEntry('Auto Combat has been disabled.', 'system'));
+      if (newHp <= 0) {
+        // ── Full death flow ────────────────────────────────────────────
+        const xpLost = calcDeathXpLoss(player.xpToNextLevel);
+        const newXp = Math.max(0, player.xp - xpLost);
+        const bindHp = calcBindPointHp(player.stats.maxHp);
+        const bindMana = calcBindPointMana(player.stats.maxMana, isCasterClass(player.class));
 
-      player = {
-        ...player,
-        xp: newXp,
-        deathCount: player.deathCount + 1,
-        skills: newSkillsOnHit,
-        stats: {
-          ...player.stats,
-          hp: bindHp,
-          mana: bindMana,
-        },
-      };
-      combat = {
-        ...combat,
-        autoAttacking: false,
-        isActive: false,
-        currentMonster: null,
-        monsterCurrentHp: 0,
-        currentMonsterLevel: 0,
-      };
-    } else {
-      player = {
-        ...player,
-        skills: newSkillsOnHit,
-        stats: { ...player.stats, hp: newHp },
-      };
+        newLog.push(makeLogEntry(`You have been slain by ${currentMonster.name}!`, 'death'));
+        newLog.push(makeLogEntry(`You lose ${xpLost} experience points.`, 'system'));
+        newLog.push(makeLogEntry('You have been transported to your bind point.', 'system'));
+        newLog.push(makeLogEntry('Auto Combat has been disabled.', 'system'));
+
+        player = {
+          ...player,
+          xp: newXp,
+          deathCount: player.deathCount + 1,
+          skills: newSkillsOnHit,
+          stats: {
+            ...player.stats,
+            hp: bindHp,
+            mana: bindMana,
+          },
+        };
+        combat = {
+          ...combat,
+          autoAttacking: false,
+          isActive: false,
+          currentMonster: null,
+          monsterCurrentHp: 0,
+          currentMonsterLevel: 0,
+        };
+      } else {
+        player = {
+          ...player,
+          skills: newSkillsOnHit,
+          stats: { ...player.stats, hp: newHp },
+        };
+        combat = {
+          ...combat,
+          currentMonster,
+          monsterCurrentHp,
+          currentMonsterLevel,
+          lastTickTime: Date.now(),
+        };
+      }
+    } else if (attackTarget.ghostId) {
+      // ── Monster attacks a grouped ghost ────────────────────────────────
+      const ghostIdx = updatedGhosts.findIndex((g) => g.id === attackTarget.ghostId);
+      if (ghostIdx !== -1) {
+        const tg = updatedGhosts[ghostIdx];
+
+        // Dodge check
+        if (Math.random() < calcDodgeChance(tg.stats.agi)) {
+          newLog.push(makeLogEntry(`${tg.name} dodges!`, 'miss'));
+        } else {
+          const mitigated = calcMitigatedDamage(npcDmg, tg.stats.ac, npcLevel);
+          const newHp = tg.stats.hp - mitigated;
+          newLog.push(makeLogEntry(`${currentMonster.name} hits ${tg.name} for ${mitigated} damage.`, 'hit'));
+
+          if (newHp <= 0) {
+            // ── Ghost death in group context ─────────────────────────────
+            const xpLost = calcDeathXpLoss(tg.xpToNextLevel);
+            const newXp = Math.max(0, tg.xp - xpLost);
+            const bindHp = calcBindPointHp(tg.stats.maxHp);
+            const bindMana = calcBindPointMana(tg.stats.maxMana, isCasterClass(tg.class));
+            newLog.push(makeLogEntry(`${tg.name} has been slain by ${currentMonster.name}!`, 'death'));
+            if (xpLost > 0) {
+              newLog.push(makeLogEntry(`${tg.name} loses ${xpLost} experience points.`, 'system'));
+            }
+            updatedGhosts = updatedGhosts.map((g) =>
+              g.id !== tg.id ? g : {
+                ...g,
+                xp: newXp,
+                deathCount: g.deathCount + 1,
+                stats: { ...g.stats, hp: bindHp, mana: bindMana },
+                currentActivity: 'Recovering',
+                recoveryTicksRemaining: 30,
+              }
+            );
+          } else {
+            // Defend skill gain + update HP
+            updatedGhosts = updatedGhosts.map((g) => {
+              if (g.id !== tg.id) return g;
+              const newSkills = { ...g.skills };
+              newSkills['Defense'] = Math.min(200, Math.min(g.level * 5, (newSkills['Defense'] ?? 0) + 1));
+              return { ...g, stats: { ...g.stats, hp: newHp }, skills: newSkills };
+            });
+          }
+        }
+      }
+
       combat = {
         ...combat,
         currentMonster,
@@ -321,5 +513,6 @@ export function processTick(state: GameState): Partial<GameState> {
     combat,
     tickCount,
     combatLog: updatedLog,
+    ghosts: updatedGhosts,
   };
 }
