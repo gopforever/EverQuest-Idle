@@ -14,6 +14,7 @@ import { AchievementsPanel } from './components/panels/AchievementsPanel';
 import { BazaarPanel } from './components/panels/BazaarPanel';
 import { TradeskillPanel } from './components/panels/TradeskillPanel';
 import { CombatTestPanel } from './components/panels/CombatTestPanel';
+import { LlmSettingsPanel } from './components/panels/LlmSettingsPanel';
 import { useGameLoop } from './hooks/useGameLoop';
 import { useGameStore } from './store/gameStore';
 import CharacterCreationScreen from './components/CharacterCreationScreen';
@@ -26,6 +27,7 @@ function PanelContent({ activePanel }: { activePanel: PanelId }) {
     case 'skills': return <SkillsPanel />;
     case 'spells': return <SpellsPanel />;
     case 'who': return <WhoPanel />;
+    case 'agents': return <LlmSettingsPanel />;
     case 'guild': return <GuildPanel />;
     case 'achievements': return <AchievementsPanel />;
     case 'bazaar': return <BazaarPanel />;

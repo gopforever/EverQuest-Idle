@@ -30,17 +30,12 @@ import {
   getStartingZone,
   buildGhostStats,
 } from '../engine/characterCreation';
+import { generateGhostName } from '../utils/ghostNames';
+import { runLlmAgentQueue, applyLlmResultsToGhosts } from '../engine/llmAgent';
 
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
-
-const GHOST_NAMES = [
-  'Talindra', 'Brokk', 'Serenaya', 'Grimtooth', 'Yallara',
-  'Thunderforge', 'Moonwhisper', 'Darkclaw', 'Silverveil', 'Ironpaw',
-  'Ashveil', 'Stonehammer', 'Windrunner', 'Shadowblade', 'Dawnseeker',
-  'Bloodmane', 'Frostweave', 'Emberfall', 'Stormcaller', 'Nightshade',
-];
 
 /** All valid race+class pairs, flattened for ghost generation. */
 const ALL_RACE_CLASS_PAIRS: { race: Race; cls: CharacterClass }[] = (
@@ -57,7 +52,7 @@ function makeGhost(index: number): GhostPlayer {
   const stats = buildGhostStats(race, cls);
   return {
     id: generateId(),
-    name: GHOST_NAMES[index % GHOST_NAMES.length] + (index >= GHOST_NAMES.length ? `_${Math.floor(index / GHOST_NAMES.length)}` : ''),
+    name: generateGhostName(index),
     race,
     class: cls,
     level: 1,
@@ -137,6 +132,8 @@ interface GameStore extends GameState {
   inviteGhost: (ghostId: string) => void;
   kickGhost: (ghostId: string) => void;
   disbandGroup: () => void;
+  // LLM agent actions
+  runLlmAgentsAsync: () => void;
 }
 
 const initialGhosts = Array.from({ length: 100 }, (_, i) => makeGhost(i));
@@ -290,6 +287,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
 
     set({ ...playerUpdates, ...ghostUpdates, ...bazaarUpdate } as Partial<GameStore>);
+
+    // Fire LLM agent queue every 50 ticks (non-blocking)
+    if (newTickCount % 50 === 0) {
+      get().runLlmAgentsAsync();
+    }
   },
 
   addCombatLogEntry: (entry) => {
@@ -607,6 +609,19 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set({
       group: { ...group, members: [] },
       combatLog: [...combatLog, newEntry].slice(-200),
+    });
+  },
+
+  runLlmAgentsAsync: () => {
+    const state = get();
+    runLlmAgentQueue(state, state.tickCount).then(({ entries, results }) => {
+      if (entries.length === 0 && results.length === 0) return;
+      set((s) => ({
+        combatLog: [...s.combatLog, ...entries].slice(-200),
+        ghosts: applyLlmResultsToGhosts(s.ghosts, results),
+      }));
+    }).catch(() => {
+      // Silently ignore errors — LLM is optional
     });
   },
 }));

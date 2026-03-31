@@ -232,6 +232,9 @@ export interface GhostPlayer {
   deathCount: number;
   skills: Record<string, number>;
   recoveryTicksRemaining: number;
+  memory?: string[];           // last N event strings this ghost experienced
+  memorySummary?: string;      // LLM-compressed summary of past events
+  llmCooldownUntilTick?: number; // don't call LLM again until this tick
 }
 
 export interface GroupState {
