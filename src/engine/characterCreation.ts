@@ -1,4 +1,4 @@
-import type { Race, CharacterClass, CharacterStats, EquipmentSlots } from '../types';
+import type { Race, CharacterClass, CharacterStats, EquipmentSlots, Item } from '../types';
 import { ITEMS } from '../data/items';
 import { ZONES } from '../data/zones';
 import {
@@ -7,7 +7,6 @@ import {
   RACE_CLASS_COMBOS,
   RACE_STARTING_ZONES,
   CLASS_STARTING_SKILLS,
-  MELEE_CLASSES,
 } from '../data/characterData';
 
 // ── Validation ────────────────────────────────────────────────────────────────
@@ -147,14 +146,70 @@ export function buildStartingSkills(cls: CharacterClass): Record<string, number>
 
 // ── Gear ──────────────────────────────────────────────────────────────────────
 
-export function buildStartingGear(cls: CharacterClass): EquipmentSlots {
-  if (MELEE_CLASSES.has(cls)) {
-    const sword = ITEMS['rusty_short_sword'];
-    if (sword) {
-      return { Primary: sword };
-    }
+// _race is intentionally kept in the signature for future race-specific gear
+// art or item selection; currently unused.
+export function buildStartingGear(_race: Race, cls: CharacterClass): EquipmentSlots {
+  const cloth: EquipmentSlots = {
+    Head:   ITEMS['tattered_cloth_cap'],
+    Chest:  ITEMS['tattered_cloth_tunic'],
+    Arms:   ITEMS['tattered_cloth_sleeves'],
+    Wrist1: ITEMS['tattered_cloth_wristguard'],
+    Wrist2: ITEMS['tattered_cloth_wristguard2'],
+    Hands:  ITEMS['tattered_cloth_gloves'],
+    Legs:   ITEMS['tattered_cloth_pants'],
+    Feet:   ITEMS['tattered_cloth_boots'],
+    Waist:  ITEMS['tattered_cloth_belt'],
+    Back:   ITEMS['tattered_cloth_cloak'],
+  };
+
+  // Remove any undefined entries (safety guard)
+  (Object.keys(cloth) as (keyof EquipmentSlots)[]).forEach((slot) => {
+    if (!cloth[slot]) delete cloth[slot];
+  });
+
+  // Weapon selection by class
+  let weaponId: string;
+  switch (cls) {
+    case 'Rogue':
+      weaponId = 'rusty_dagger'; break;
+    case 'Monk':
+      weaponId = 'worn_handwraps'; break;
+    case 'Cleric':
+    case 'Shaman':
+      weaponId = 'simple_club'; break;
+    case 'Druid':
+    case 'Wizard':
+    case 'Magician':
+    case 'Enchanter':
+    case 'Necromancer':
+      weaponId = 'cracked_staff'; break;
+    default:
+      weaponId = 'rusty_short_sword';
   }
-  return {};
+
+  const weapon = ITEMS[weaponId];
+  if (weapon) cloth['Primary'] = weapon;
+
+  return cloth;
+}
+
+export function buildStartingInventory(): (Item | null)[] {
+  const inv: (Item | null)[] = new Array(30).fill(null);
+  const bread = ITEMS['bread_loaf'];
+  const water = ITEMS['fresh_water'];
+  if (bread) {
+    inv[0] = bread;
+    inv[1] = bread;
+    inv[2] = bread;
+    inv[3] = bread;
+  }
+  if (water) {
+    inv[4] = water;
+    inv[5] = water;
+    inv[6] = water;
+    inv[7] = water;
+  }
+  return inv;
 }
 
 // ── Starting zone ─────────────────────────────────────────────────────────────

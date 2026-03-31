@@ -26,6 +26,7 @@ import {
   buildPlayerStats,
   buildStartingSkills,
   buildStartingGear,
+  buildStartingInventory,
   getStartingZone,
   buildGhostStats,
 } from '../engine/characterCreation';
@@ -67,7 +68,7 @@ function makeGhost(index: number): GhostPlayer {
     isOnline: Math.random() > 0.4,
     currentZone: 'qeynos_hills',
     currentActivity: 'Idle',
-    gear: {},
+    gear: buildStartingGear(race, cls),
     stats,
     plat: 0,
     achievements: [],
@@ -87,8 +88,8 @@ function makeInitialPlayer(): PlayerCharacter {
     xp: 0,
     xpToNextLevel: calcXpToNextLevel(1),
     stats,
-    gear: buildStartingGear('Warrior'),
-    inventory: new Array(30).fill(null) as (null)[],
+    gear: buildStartingGear('Human', 'Warrior'),
+    inventory: buildStartingInventory(),
     currency: { pp: 0, gp: 0, sp: 0, cp: 0 },
     currentZone: 'qeynos_hills',
     skills: buildStartingSkills('Warrior'),
@@ -175,7 +176,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   createCharacter: (name: string, race: Race, cls: CharacterClass) => {
     const stats = buildPlayerStats(race, cls);
     const skills = buildStartingSkills(cls);
-    const gear = buildStartingGear(cls);
+    const gear = buildStartingGear(race, cls);
     const startingZoneId = getStartingZone(race);
     const startingZone = ZONES[startingZoneId] ?? ZONES['qeynos_hills'];
     set({
@@ -190,7 +191,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         xpToNextLevel: calcXpToNextLevel(1),
         stats,
         gear,
-        inventory: new Array(30).fill(null) as (null)[],
+        inventory: buildStartingInventory(),
         currency: { pp: 0, gp: 0, sp: 0, cp: 0 },
         currentZone: startingZoneId,
         skills,

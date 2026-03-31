@@ -89,10 +89,16 @@ export const CLASS_STARTING_SKILLS: Record<CharacterClass, Record<string, number
   Necromancer:  { Meditate: 1, Channeling: 1, Defense: 5 },
 };
 
-// ── Melee classes (get rusty_short_sword at creation) ────────────────────────
+// ── Melee classes ─────────────────────────────────────────────────────────────
 
 export const MELEE_CLASSES = new Set<CharacterClass>([
   'Warrior', 'Monk', 'Rogue', 'Paladin', 'ShadowKnight', 'Ranger', 'Bard',
+]);
+
+// ── Caster classes ────────────────────────────────────────────────────────────
+
+export const CASTER_CLASSES = new Set<CharacterClass>([
+  'Cleric', 'Druid', 'Shaman', 'Wizard', 'Magician', 'Enchanter', 'Necromancer',
 ]);
 
 // ── Race descriptions ─────────────────────────────────────────────────────────
