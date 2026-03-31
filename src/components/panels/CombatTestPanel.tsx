@@ -10,14 +10,25 @@ import {
   getClassXpModifier,
   rollSpellResist,
   calcXpToNextLevel,
+  calcMaxHpForLevel,
+  calcMaxManaForLevel,
+  calcWeaponSwingInterval,
+  getWeaponDamage,
+  getWeaponDelay,
 } from '../../engine/combat';
 import { calcDeathXpLoss, calcResXpRecovery } from '../../engine/death';
+import { RACE_CLASS_COMBOS, RACE_BASE_STATS, CLASS_STAT_BONUSES } from '../../data/characterData';
 import { MONSTERS } from '../../data/monsters';
-import type { CharacterClass } from '../../types';
+import type { CharacterClass, Race } from '../../types';
 
 const ALL_CLASSES: CharacterClass[] = [
   'Warrior', 'Monk', 'Rogue', 'Paladin', 'ShadowKnight', 'Ranger', 'Bard',
   'Cleric', 'Druid', 'Shaman', 'Wizard', 'Magician', 'Enchanter', 'Necromancer',
+];
+
+const ALL_RACES: Race[] = [
+  'Human', 'Barbarian', 'Erudite', 'WoodElf', 'HighElf', 'DarkElf',
+  'HalfElf', 'Dwarf', 'Troll', 'Ogre', 'Halfling', 'Gnome',
 ];
 
 const MONSTER_IDS = Object.keys(MONSTERS);
@@ -105,14 +116,99 @@ function SetupControls() {
   const [manaInput, setManaInput] = useState('');
   const [xpInput, setXpInput] = useState('');
   const [gpInput, setGpInput] = useState('');
+  const [classInput, setClassInput] = useState<CharacterClass>(player.class);
+  const [raceInput, setRaceInput] = useState<Race>(player.race);
+  const [comboError, setComboError] = useState('');
+  const [wepDmg, setWepDmg] = useState('3');
+  const [wepDelay, setWepDelay] = useState('25');
 
   function applyLevel() {
     const newLevel = Math.max(1, Math.min(60, parseInt(levelInput) || 1));
+    useGameStore.setState((s) => {
+      const newMaxHp = calcMaxHpForLevel(newLevel, s.player.stats.sta, s.player.class);
+      const newMaxMana = calcMaxManaForLevel(newLevel, s.player.stats.wis, s.player.stats.int, s.player.class);
+      return {
+        player: {
+          ...s.player,
+          level: newLevel,
+          xpToNextLevel: calcXpToNextLevel(newLevel),
+          stats: {
+            ...s.player.stats,
+            maxHp: newMaxHp,
+            hp: newMaxHp,
+            maxMana: newMaxMana,
+            mana: newMaxMana,
+          },
+        },
+      };
+    });
+  }
+
+  function applyClassRace() {
+    const validClasses = RACE_CLASS_COMBOS[raceInput as Race] ?? [];
+    if (!validClasses.includes(classInput as CharacterClass)) {
+      setComboError(`${raceInput} cannot be ${classInput}`);
+      return;
+    }
+    setComboError('');
+    useGameStore.setState((s) => {
+      const raceBase = RACE_BASE_STATS[raceInput as Race];
+      const classBonus = CLASS_STAT_BONUSES[classInput as CharacterClass];
+      const mergedStats = {
+        str: (raceBase.str ?? 75) + (classBonus.str ?? 0),
+        sta: (raceBase.sta ?? 75) + (classBonus.sta ?? 0),
+        agi: (raceBase.agi ?? 75) + (classBonus.agi ?? 0),
+        dex: (raceBase.dex ?? 75) + (classBonus.dex ?? 0),
+        wis: (raceBase.wis ?? 75) + (classBonus.wis ?? 0),
+        int: (raceBase.int ?? 75) + (classBonus.int ?? 0),
+        cha: (raceBase.cha ?? 75) + (classBonus.cha ?? 0),
+      };
+      const newMaxHp = calcMaxHpForLevel(s.player.level, mergedStats.sta, classInput);
+      const newMaxMana = calcMaxManaForLevel(s.player.level, mergedStats.wis, mergedStats.int, classInput);
+      return {
+        player: {
+          ...s.player,
+          race: raceInput,
+          class: classInput,
+          stats: {
+            ...s.player.stats,
+            ...mergedStats,
+            maxHp: newMaxHp,
+            hp: newMaxHp,
+            maxMana: newMaxMana,
+            mana: newMaxMana,
+          },
+        },
+      };
+    });
+  }
+
+  function equipTestWeapon() {
+    const dmg = Math.max(1, parseInt(wepDmg) || 3);
+    const delay = Math.max(1, parseInt(wepDelay) || 25);
+    const testWeapon = {
+      id: 'test_weapon',
+      name: `Test Weapon (${dmg}dmg / ${delay}dly)`,
+      slot: 'Primary' as const,
+      type: 'weapon' as const,
+      rarity: 'common' as const,
+      stats: { damage: dmg, delay: delay },
+      weight: 1.0,
+      classes: [...ALL_CLASSES] as CharacterClass[],
+      races: [...ALL_RACES] as Race[],
+      lore: false,
+      noDrop: false,
+      stackable: false,
+      value: 0,
+      source: 'vendor' as const,
+      sprite: '',
+      recLevel: 1,
+      description: 'Debug test weapon.',
+    };
     useGameStore.setState((s) => ({
       player: {
         ...s.player,
-        level: newLevel,
-        xpToNextLevel: calcXpToNextLevel(newLevel),
+        gear: { ...s.player.gear, Primary: testWeapon },
       },
     }));
   }
@@ -259,6 +355,71 @@ function SetupControls() {
         <span style={{ color: 'var(--eq-text-dim)', fontSize: '11px' }}>
           {player.currency.gp} gp
         </span>
+      </div>
+
+      <div style={{ borderTop: '1px solid var(--eq-border)', margin: '6px 0 2px' }} />
+      <div style={{ fontSize: '11px', color: 'var(--eq-gold)', marginBottom: '2px' }}>Set Class / Race</div>
+
+      <div style={rowStyle}>
+        <span style={labelStyle}>Race</span>
+        <select
+          value={raceInput}
+          onChange={(e) => setRaceInput(e.target.value as Race)}
+          style={{ ...wideInputStyle, width: '110px' }}
+        >
+          {ALL_RACES.map((r) => (
+            <option key={r} value={r}>{r}</option>
+          ))}
+        </select>
+      </div>
+
+      <div style={rowStyle}>
+        <span style={labelStyle}>Class</span>
+        <select
+          value={classInput}
+          onChange={(e) => setClassInput(e.target.value as CharacterClass)}
+          style={{ ...wideInputStyle, width: '110px' }}
+        >
+          {ALL_CLASSES.map((c) => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
+        <button style={btnStyle} onClick={applyClassRace}>Apply</button>
+      </div>
+
+      {comboError && (
+        <div style={{ color: '#a04040', fontSize: '11px', padding: '1px 0' }}>{comboError}</div>
+      )}
+
+      <div style={{ borderTop: '1px solid var(--eq-border)', margin: '6px 0 2px' }} />
+      <div style={{ fontSize: '11px', color: 'var(--eq-gold)', marginBottom: '2px' }}>Test Weapon</div>
+
+      <div style={rowStyle}>
+        <span style={labelStyle}>Damage</span>
+        <input
+          type="number"
+          min={1}
+          value={wepDmg}
+          onChange={(e) => setWepDmg(e.target.value)}
+          style={inputStyle}
+        />
+      </div>
+
+      <div style={rowStyle}>
+        <span style={labelStyle}>Delay (1/10s)</span>
+        <input
+          type="number"
+          min={1}
+          value={wepDelay}
+          onChange={(e) => setWepDelay(e.target.value)}
+          style={inputStyle}
+        />
+      </div>
+
+      <div style={rowStyle}>
+        <button style={{ ...btnStyle, width: '100%' }} onClick={equipTestWeapon}>
+          Equip Test Weapon
+        </button>
       </div>
     </>
   );
@@ -421,6 +582,66 @@ function MeleeHitCalc() {
 }
 
 // ── Section: Hit Chance Calculator ────────────────────────────────────────────
+
+// ── Section: DPS Estimate ─────────────────────────────────────────────────────
+
+function DpsEstimate() {
+  const player = useGameStore((s) => s.player);
+  const [mobDefense, setMobDefense] = useState('10');
+
+  const weaponDamage = getWeaponDamage(player.gear ?? {});
+  const weaponDelay = getWeaponDelay(player.gear ?? {});
+  const offenseSkill = player.skills['1HSlash'] ?? player.level * 2;
+  const defSkill = parseInt(mobDefense) || 10;
+
+  const maxHit = calcMeleeMaxHit(weaponDamage, player.level, player.stats.str);
+  const avgHit = (maxHit + 1) / 2;
+  const hitChance = calcHitChance(offenseSkill, defSkill);
+  const swingInterval = calcWeaponSwingInterval(weaponDelay);
+  const estDps = swingInterval > 0 ? (avgHit * hitChance) / swingInterval : 0;
+
+  return (
+    <>
+      <div style={sectionHeaderStyle}>DPS ESTIMATE</div>
+      <div style={{ fontSize: '10px', color: 'var(--eq-text-dim)', padding: '1px 0 3px' }}>
+        Live player stats · weapon: {weaponDamage}dmg / {weaponDelay}dly
+      </div>
+      <div style={rowStyle}>
+        <span style={labelStyle}>Mob Defense</span>
+        <input
+          type="number"
+          min={0}
+          value={mobDefense}
+          onChange={(e) => setMobDefense(e.target.value)}
+          style={inputStyle}
+        />
+      </div>
+      <div style={rowStyle}>
+        <span style={labelStyle}>Max Hit</span>
+        <span style={resultStyle}>{maxHit}</span>
+      </div>
+      <div style={rowStyle}>
+        <span style={labelStyle}>Avg Hit</span>
+        <span style={resultStyle}>{avgHit.toFixed(1)}</span>
+      </div>
+      <div style={rowStyle}>
+        <span style={labelStyle}>Hit Chance</span>
+        <span style={resultStyle}>{(hitChance * 100).toFixed(1)}%</span>
+        <span style={{ fontSize: '10px', color: 'var(--eq-text-dim)' }}>
+          (off:{offenseSkill})
+        </span>
+      </div>
+      <div style={rowStyle}>
+        <span style={labelStyle}>Swing Interval</span>
+        <span style={resultStyle}>{swingInterval}s</span>
+      </div>
+      <div style={rowStyle}>
+        <span style={labelStyle}>Est. DPS</span>
+        <span style={{ ...resultStyle, color: '#5ddb5d' }}>{estDps.toFixed(2)}</span>
+      </div>
+    </>
+  );
+}
 
 function HitChanceCalc() {
   const [offense, setOffense] = useState('100');
@@ -690,6 +911,19 @@ function LivePlayerStats() {
         <StatRow label="XP %" value={`${xpPct}%`} color="var(--eq-orange, #e09040)" />
         <StatRow label="Deaths" value={player.deathCount} color="#a04040" />
         <StatRow label="Zone" value={currentZone.name} color="var(--eq-gold)" />
+        <div style={{ borderTop: '1px solid var(--eq-border)', margin: '4px 0' }} />
+        <div style={{ fontSize: '11px', color: 'var(--eq-gold)', marginBottom: '2px' }}>Skills</div>
+        {Object.keys(player.skills ?? {}).filter((k) => (player.skills[k] ?? 0) > 0).length === 0 ? (
+          <div style={{ color: 'var(--eq-text-dim)', fontSize: '11px', fontStyle: 'italic' }}>
+            No skills trained
+          </div>
+        ) : (
+          Object.entries(player.skills ?? {})
+            .filter(([, v]) => v > 0)
+            .map(([skill, val]) => (
+              <StatRow key={skill} label={skill} value={val} />
+            ))
+        )}
       </div>
     </>
   );
@@ -732,6 +966,7 @@ export function CombatTestPanel() {
       <SetupControls />
       <CombatSimulation />
       <MeleeHitCalc />
+      <DpsEstimate />
       <HitChanceCalc />
       <AcMitigationCalc />
       <XpCalc />
