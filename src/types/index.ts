@@ -121,13 +121,13 @@ export interface ItemStats {
 export interface Item {
   id: string;
   name: string;
-  slot: EquipSlot;
+  slot: EquipSlot | null;
   type: ItemType;
   rarity: ItemRarity;
   stats: ItemStats;
   weight: number;
-  classes: CharacterClass[];
-  races: Race[];
+  classes: CharacterClass[] | 'ALL';
+  races: Race[] | 'ALL';
   lore: boolean;
   noDrop: boolean;
   stackable: boolean;
@@ -250,6 +250,51 @@ export interface CombatState {
   currentMonsterLevel: number; // level of the currently-engaged monster
 }
 
+// ── Tradeskill types ─────────────────────────────────────────────────────────
+
+export type TradeskillName =
+  | 'Blacksmithing'
+  | 'Tailoring'
+  | 'Baking'
+  | 'Brewing'
+  | 'Jewelcrafting'
+  | 'Pottery'
+  | 'Fletching'
+  | 'Fishing'
+  | 'Tinkering';
+
+export interface TradeskillRecipe {
+  id: string;
+  name: string;
+  skill: TradeskillName;
+  skillRequired: number;
+  skillGainChance: number;
+  ingredients: { itemId: string; quantity: number }[];
+  resultItemId: string;
+  resultQuantity: number;
+  trivial: number;
+  failProduct?: string;
+}
+
+// ── Bazaar types ─────────────────────────────────────────────────────────────
+
+export interface BazaarListing {
+  id: string;
+  sellerId: string;
+  sellerName: string;
+  itemId: string;
+  itemName: string;
+  quantity: number;
+  pricePerUnit: number;
+  listedAt: number;
+  category: TradeskillName | 'loot' | 'misc';
+}
+
+export interface BazaarState {
+  listings: BazaarListing[];
+  lastRefreshTick: number;
+}
+
 export interface GameState {
   player: PlayerCharacter;
   combat: CombatState;
@@ -258,4 +303,5 @@ export interface GameState {
   currentZone: Zone;
   tickCount: number;
   gameStarted: boolean;
+  bazaar: BazaarState;
 }

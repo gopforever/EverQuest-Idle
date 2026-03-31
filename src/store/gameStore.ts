@@ -10,12 +10,17 @@ import type {
   CharacterStats,
   Race,
   CharacterClass,
+  BazaarState,
 } from '../types';
 import { ZONES, STARTING_ZONE } from '../data/zones';
 import { processTick } from '../engine/tick';
 import { processGhostTick } from '../engine/ghostAI';
 import { saveGameState, loadGameState } from '../engine/save';
 import { calcXpToNextLevel } from '../engine/combat';
+import { RECIPES } from '../data/recipes';
+import { attemptCombine } from '../engine/tradeskills';
+import { subtractCurrency, refreshBazaarListings, formatCurrency } from '../engine/bazaar';
+import { ITEMS } from '../data/items';
 
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -140,9 +145,19 @@ interface GameStore extends GameState {
   setCurrentTarget: (monsterId: string | null) => void;
   incrementTick: () => void;
   clearCombatLog: () => void;
+  // Economy actions
+  buyFromBazaar: (listingId: string, quantity: number) => void;
+  listItemOnBazaar: (inventorySlot: number, pricePerUnit: number, quantity: number) => void;
+  cancelBazaarListing: (listingId: string) => void;
+  attemptTradeskillCombine: (recipeId: string) => void;
 }
 
 const initialGhosts = Array.from({ length: 100 }, (_, i) => makeGhost(i));
+
+const initialBazaar: BazaarState = {
+  listings: [],
+  lastRefreshTick: 0,
+};
 
 export const useGameStore = create<GameStore>((set, get) => ({
   player: makeInitialPlayer(),
@@ -159,6 +174,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   currentZone: STARTING_ZONE,
   tickCount: 0,
   gameStarted: false,
+  bazaar: initialBazaar,
 
   startGame: () => set({ gameStarted: true }),
 
@@ -215,17 +231,34 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const playerUpdates = processTick(state);
     // Build an intermediate state so ghostAI can see the player-tick results
     // (including the incremented tickCount and updated combatLog).
+    const newTickCount = playerUpdates.tickCount ?? state.tickCount;
     const stateAfterPlayer: GameState = {
       player: playerUpdates.player ?? state.player,
       combat: playerUpdates.combat ?? state.combat,
       combatLog: playerUpdates.combatLog ?? state.combatLog,
       ghosts: state.ghosts,
       currentZone: playerUpdates.currentZone ?? state.currentZone,
-      tickCount: playerUpdates.tickCount ?? state.tickCount,
+      tickCount: newTickCount,
       gameStarted: state.gameStarted,
+      bazaar: state.bazaar,
     };
     const ghostUpdates = processGhostTick(stateAfterPlayer, stateAfterPlayer.tickCount);
-    set({ ...playerUpdates, ...ghostUpdates } as Partial<GameStore>);
+
+    // Economy tick: refresh bazaar every 10 game ticks
+    let bazaarUpdate: Partial<GameState> = {};
+    const lastRefresh = state.bazaar.lastRefreshTick;
+    if (newTickCount - lastRefresh >= 10) {
+      const freshListings = refreshBazaarListings(
+        state.bazaar.listings,
+        ghostUpdates.ghosts ?? state.ghosts,
+        newTickCount
+      );
+      bazaarUpdate = {
+        bazaar: { listings: freshListings, lastRefreshTick: newTickCount },
+      };
+    }
+
+    set({ ...playerUpdates, ...ghostUpdates, ...bazaarUpdate } as Partial<GameStore>);
   },
 
   addCombatLogEntry: (entry) => {
@@ -271,6 +304,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       currentZone: STARTING_ZONE,
       tickCount: 0,
       gameStarted: false,
+      bazaar: initialBazaar,
     });
   },
 
@@ -341,4 +375,141 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   clearCombatLog: () => set({ combatLog: [] }),
+
+  // ── Economy actions ────────────────────────────────────────────────────────
+
+  buyFromBazaar: (listingId: string, quantity: number) => {
+    const { player, bazaar } = get();
+    const listing = bazaar.listings.find((l) => l.id === listingId);
+    if (!listing) return;
+
+    // Add item to inventory
+    const item = ITEMS[listing.itemId];
+    if (!item) return;
+
+    // Check inventory space upfront before charging currency
+    const emptySlots = player.inventory.filter((s) => s === null).length;
+    if (emptySlots < quantity) {
+      get().addCombatLogEntry({ message: 'Your inventory is full!', type: 'system' });
+      return;
+    }
+
+    const totalCost = listing.pricePerUnit * quantity;
+    const newCurrency = subtractCurrency(player.currency, totalCost);
+    if (!newCurrency) {
+      get().addCombatLogEntry({
+        message: `You cannot afford that purchase.`,
+        type: 'system',
+      });
+      return;
+    }
+
+    let newInventory = [...player.inventory] as (Item | null)[];
+    for (let i = 0; i < quantity; i++) {
+      const slot = newInventory.findIndex((s) => s === null);
+      if (slot !== -1) {
+        newInventory[slot] = item;
+      }
+    }
+
+    // Update or remove listing
+    const newListings = bazaar.listings
+      .map((l) => {
+        if (l.id !== listingId) return l;
+        const remaining = l.quantity - quantity;
+        return remaining > 0 ? { ...l, quantity: remaining } : null;
+      })
+      .filter((l): l is NonNullable<typeof l> => l !== null);
+
+    const costStr = formatCurrency(totalCost);
+    get().addCombatLogEntry({
+      message: `You purchase ${quantity}x ${listing.itemName} for ${costStr}.`,
+      type: 'loot',
+    });
+
+    set({
+      player: { ...player, inventory: newInventory, currency: newCurrency },
+      bazaar: { ...bazaar, listings: newListings },
+    });
+  },
+
+  listItemOnBazaar: (inventorySlot: number, pricePerUnit: number, quantity: number) => {
+    const { player, bazaar } = get();
+    const item = player.inventory[inventorySlot];
+    if (!item) return;
+
+    // Remove from inventory
+    const newInventory = [...player.inventory] as (Item | null)[];
+    newInventory[inventorySlot] = null;
+
+    const listing = {
+      id: generateId(),
+      sellerId: 'player',
+      sellerName: player.name,
+      itemId: item.id,
+      itemName: item.name,
+      quantity,
+      pricePerUnit,
+      listedAt: get().tickCount,
+      category: 'misc' as const,
+    };
+
+    set({
+      player: { ...player, inventory: newInventory },
+      bazaar: { ...bazaar, listings: [...bazaar.listings, listing] },
+    });
+
+    get().addCombatLogEntry({
+      message: `You list ${item.name} on the Bazaar for ${pricePerUnit}cp each.`,
+      type: 'system',
+    });
+  },
+
+  cancelBazaarListing: (listingId: string) => {
+    const { player, bazaar } = get();
+    const listing = bazaar.listings.find((l) => l.id === listingId && l.sellerId === 'player');
+    if (!listing) return;
+
+    // Return item to inventory
+    const item = ITEMS[listing.itemId];
+    let newInventory = [...player.inventory] as (Item | null)[];
+    if (item) {
+      const slot = newInventory.findIndex((s) => s === null);
+      if (slot !== -1) {
+        newInventory[slot] = item;
+      }
+    }
+
+    const newListings = bazaar.listings.filter((l) => l.id !== listingId);
+    set({
+      player: { ...player, inventory: newInventory },
+      bazaar: { ...bazaar, listings: newListings },
+    });
+
+    get().addCombatLogEntry({
+      message: `Bazaar listing for ${listing.itemName} cancelled.`,
+      type: 'system',
+    });
+  },
+
+  attemptTradeskillCombine: (recipeId: string) => {
+    const { player } = get();
+    const recipe = RECIPES.find((r) => r.id === recipeId);
+    if (!recipe) return;
+
+    const result = attemptCombine(player, recipe);
+
+    set({
+      player: {
+        ...player,
+        inventory: result.updatedInventory,
+        skills: result.updatedSkills,
+      },
+    });
+
+    get().addCombatLogEntry({
+      message: result.logMessage,
+      type: result.success ? 'loot' : 'system',
+    });
+  },
 }));
