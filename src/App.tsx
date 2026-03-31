@@ -15,6 +15,7 @@ import { BazaarPanel } from './components/panels/BazaarPanel';
 import { TradeskillPanel } from './components/panels/TradeskillPanel';
 import { useGameLoop } from './hooks/useGameLoop';
 import { useGameStore } from './store/gameStore';
+import CharacterCreationScreen from './components/CharacterCreationScreen';
 
 
 function PanelContent({ activePanel }: { activePanel: PanelId }) {
@@ -59,7 +60,12 @@ function StatusBar() {
 
 export default function App() {
   const [activePanel, setActivePanel] = useState<PanelId>('inventory');
+  const characterCreated = useGameStore((s) => s.characterCreated);
   useGameLoop();
+
+  if (!characterCreated) {
+    return <CharacterCreationScreen />;
+  }
 
   return (
     <div

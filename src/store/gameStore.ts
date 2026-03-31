@@ -7,7 +7,6 @@ import type {
   Item,
   EquipSlot,
   GhostPlayer,
-  CharacterStats,
   Race,
   CharacterClass,
   BazaarState,
@@ -21,6 +20,14 @@ import { RECIPES } from '../data/recipes';
 import { attemptCombine } from '../engine/tradeskills';
 import { subtractCurrency, refreshBazaarListings, formatCurrency } from '../engine/bazaar';
 import { ITEMS } from '../data/items';
+import { RACE_CLASS_COMBOS } from '../data/characterData';
+import {
+  buildPlayerStats,
+  buildStartingSkills,
+  buildStartingGear,
+  getStartingZone,
+  buildGhostStats,
+} from '../engine/characterCreation';
 
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -33,25 +40,19 @@ const GHOST_NAMES = [
   'Bloodmane', 'Frostweave', 'Emberfall', 'Stormcaller', 'Nightshade',
 ];
 
-const GHOST_RACES: Race[] = ['Human', 'Barbarian', 'WoodElf', 'HalfElf', 'Dwarf', 'Halfling', 'Gnome'];
-const GHOST_CLASSES: CharacterClass[] = ['Warrior', 'Rogue', 'Ranger', 'Cleric', 'Druid', 'Wizard', 'Shaman'];
+/** All valid race+class pairs, flattened for ghost generation. */
+const ALL_RACE_CLASS_PAIRS: { race: Race; cls: CharacterClass }[] = (
+  Object.entries(RACE_CLASS_COMBOS) as [Race, CharacterClass[]][]
+).flatMap(([race, classes]) => classes.map((cls) => ({ race, cls })));
+
 const GHOST_PERSONALITIES = ['Grinder', 'Tradeskiller', 'Merchant', 'Casual', 'Tank', 'Healer', 'Loner', 'Social', 'AFKFarmer'] as const;
 
-function makeDefaultStats(): CharacterStats {
-  return {
-    str: 75, sta: 75, agi: 75, dex: 75,
-    wis: 75, int: 75, cha: 75,
-    hp: 100, maxHp: 100,
-    mana: 100, maxMana: 100,
-    ac: 10, attack: 30,
-  };
-}
-
 function makeGhost(index: number): GhostPlayer {
-  const race = GHOST_RACES[index % GHOST_RACES.length];
-  const cls = GHOST_CLASSES[index % GHOST_CLASSES.length];
+  const pair = ALL_RACE_CLASS_PAIRS[index % ALL_RACE_CLASS_PAIRS.length];
+  const race = pair.race;
+  const cls = pair.cls;
   const personality = GHOST_PERSONALITIES[index % GHOST_PERSONALITIES.length];
-  const defaultStats = makeDefaultStats();
+  const stats = buildGhostStats(race, cls);
   return {
     id: generateId(),
     name: GHOST_NAMES[index % GHOST_NAMES.length] + (index >= GHOST_NAMES.length ? `_${Math.floor(index / GHOST_NAMES.length)}` : ''),
@@ -60,19 +61,20 @@ function makeGhost(index: number): GhostPlayer {
     level: 1,
     xp: 0,
     xpToNextLevel: calcXpToNextLevel(1),
-    currentHp: defaultStats.maxHp,
+    currentHp: stats.maxHp,
     personality,
     isOnline: Math.random() > 0.4,
     currentZone: 'qeynos_hills',
     currentActivity: 'Idle',
     gear: {},
-    stats: defaultStats,
+    stats,
     plat: 0,
     achievements: [],
   };
 }
 
 function makeInitialPlayer(): PlayerCharacter {
+  const stats = buildPlayerStats('Human', 'Warrior');
   return {
     name: 'Adventurer',
     race: 'Human',
@@ -80,36 +82,12 @@ function makeInitialPlayer(): PlayerCharacter {
     level: 1,
     xp: 0,
     xpToNextLevel: calcXpToNextLevel(1),
-    stats: makeDefaultStats(),
-    gear: {
-      Primary: {
-        id: 'rusty_short_sword',
-        name: 'Rusty Short Sword',
-        slot: 'Primary',
-        type: 'weapon',
-        rarity: 'common',
-        stats: { damage: 3, delay: 25 },
-        weight: 5.0,
-        classes: ['Warrior', 'Paladin', 'ShadowKnight', 'Ranger', 'Rogue', 'Bard'],
-        races: ['Human', 'Barbarian', 'Erudite', 'WoodElf', 'HighElf', 'DarkElf', 'HalfElf', 'Dwarf', 'Troll', 'Ogre', 'Halfling', 'Gnome'],
-        lore: false,
-        noDrop: false,
-        stackable: false,
-        value: 5,
-        source: 'vendor',
-        sprite: '/assets/sprites/items/rusty_short_sword.png',
-        recLevel: 1,
-        description: 'A worn and rusty short sword. Better than nothing.',
-      },
-    },
+    stats,
+    gear: buildStartingGear('Warrior'),
     inventory: new Array(30).fill(null) as (null)[],
     currency: { pp: 0, gp: 0, sp: 0, cp: 0 },
     currentZone: 'qeynos_hills',
-    skills: {
-      '1HSlash': 5,
-      Defense: 5,
-      Offense: 5,
-    },
+    skills: buildStartingSkills('Warrior'),
     deathCount: 0,
   };
 }
@@ -136,6 +114,7 @@ interface GameStore extends GameState {
   resetGame: () => void;
   saveGame: () => void;
   loadGame: () => void;
+  createCharacter: (name: string, race: Race, cls: CharacterClass) => void;
   // Required actions per spec
   gainXP: (amount: number) => void;
   levelUp: () => void;
@@ -174,9 +153,45 @@ export const useGameStore = create<GameStore>((set, get) => ({
   currentZone: STARTING_ZONE,
   tickCount: 0,
   gameStarted: false,
+  characterCreated: false,
   bazaar: initialBazaar,
 
   startGame: () => set({ gameStarted: true }),
+
+  createCharacter: (name: string, race: Race, cls: CharacterClass) => {
+    const stats = buildPlayerStats(race, cls);
+    const skills = buildStartingSkills(cls);
+    const gear = buildStartingGear(cls);
+    const startingZoneId = getStartingZone(race);
+    const startingZone = ZONES[startingZoneId] ?? ZONES['qeynos_hills'];
+    set({
+      characterCreated: true,
+      gameStarted: false,
+      player: {
+        name,
+        race,
+        class: cls,
+        level: 1,
+        xp: 0,
+        xpToNextLevel: calcXpToNextLevel(1),
+        stats,
+        gear,
+        inventory: new Array(30).fill(null) as (null)[],
+        currency: { pp: 0, gp: 0, sp: 0, cp: 0 },
+        currentZone: startingZoneId,
+        skills,
+        deathCount: 0,
+      },
+      currentZone: startingZone,
+      combat: initialCombat,
+      combatLog: [{
+        id: generateId(),
+        timestamp: Date.now(),
+        message: `Welcome to Norrath, ${name}! You enter the world as a ${race} ${cls}.`,
+        type: 'system',
+      }],
+    });
+  },
 
   toggleAutoCombat: () => {
     const { combat, gameStarted } = get();
@@ -240,6 +255,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       currentZone: playerUpdates.currentZone ?? state.currentZone,
       tickCount: newTickCount,
       gameStarted: state.gameStarted,
+      characterCreated: state.characterCreated,
       bazaar: state.bazaar,
     };
     const ghostUpdates = processGhostTick(stateAfterPlayer, stateAfterPlayer.tickCount);
@@ -304,13 +320,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
       currentZone: STARTING_ZONE,
       tickCount: 0,
       gameStarted: false,
+      characterCreated: false,
       bazaar: initialBazaar,
     });
   },
 
   saveGame: () => {
-    const { player, combat, currentZone, tickCount, ghosts } = get();
-    void saveGameState({ player, combat, currentZone, tickCount, ghosts });
+    const { player, combat, currentZone, tickCount, ghosts, characterCreated } = get();
+    void saveGameState({ player, combat, currentZone, tickCount, ghosts, characterCreated });
   },
 
   loadGame: () => {
