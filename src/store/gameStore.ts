@@ -166,6 +166,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   gameStarted: false,
   characterCreated: false,
   bazaar: initialBazaar,
+  llmErrorCount: 0,
+  lastLlmError: undefined,
 
   startGame: () => set({ gameStarted: true }),
 
@@ -269,6 +271,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       gameStarted: state.gameStarted,
       characterCreated: state.characterCreated,
       bazaar: state.bazaar,
+      llmErrorCount: state.llmErrorCount,
+      lastLlmError: state.lastLlmError,
     };
     const ghostUpdates = processGhostTick(stateAfterPlayer, stateAfterPlayer.tickCount);
 
@@ -614,14 +618,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   runLlmAgentsAsync: () => {
     const state = get();
-    runLlmAgentQueue(state, state.tickCount).then(({ entries, results }) => {
-      if (entries.length === 0 && results.length === 0) return;
+    runLlmAgentQueue(state, state.tickCount).then(({ entries, results, errorCount, lastError }) => {
+      if (entries.length === 0 && results.length === 0 && errorCount === 0) return;
       set((s) => ({
         combatLog: [...s.combatLog, ...entries].slice(-200),
         ghosts: applyLlmResultsToGhosts(s.ghosts, results),
+        llmErrorCount: s.llmErrorCount + errorCount,
+        ...(lastError !== undefined ? { lastLlmError: lastError } : {}),
       }));
-    }).catch(() => {
-      // Silently ignore errors — LLM is optional
+    }).catch((err: unknown) => {
+      console.error('[LLM queue error]', err);
     });
   },
 }));

@@ -88,9 +88,9 @@ function generateId(): string {
 export async function runLlmAgentQueue(
   state: GameState,
   tickCount: number
-): Promise<{ entries: CombatLogEntry[]; results: LlmAgentResult[] }> {
+): Promise<{ entries: CombatLogEntry[]; results: LlmAgentResult[]; errorCount: number; lastError?: string }> {
   if (!isLlmEnabled()) {
-    return { entries: [], results: [] };
+    return { entries: [], results: [], errorCount: 0 };
   }
 
   // Select up to 3 online ghosts whose LLM cooldown has expired
@@ -103,12 +103,14 @@ export async function runLlmAgentQueue(
     .slice(0, 3);
 
   if (eligible.length === 0) {
-    return { entries: [], results: [] };
+    return { entries: [], results: [], errorCount: 0 };
   }
 
   const worldEvents = buildWorldEvents(state);
   const entries: CombatLogEntry[] = [];
   const results: LlmAgentResult[] = [];
+  let errorCount = 0;
+  let lastError: string | undefined;
 
   await Promise.all(
     eligible.map(async (ghost) => {
@@ -135,13 +137,22 @@ export async function runLlmAgentQueue(
           message: trimmed,
           llmCooldownUntilTick: tickCount + 200,
         });
-      } catch {
-        // Silently skip failed LLM calls — game must not crash
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error(`[LLM ghost error] ${ghost.name}:`, err);
+        errorCount++;
+        lastError = msg;
+        entries.push({
+          id: generateId(),
+          timestamp: Date.now(),
+          message: `[LLM] ${ghost.name}: ${msg.slice(0, 120)}`,
+          type: 'system',
+        });
       }
     })
   );
 
-  return { entries, results };
+  return { entries, results, errorCount, lastError };
 }
 
 /**
