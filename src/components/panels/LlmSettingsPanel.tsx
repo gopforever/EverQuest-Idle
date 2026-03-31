@@ -3,9 +3,18 @@ import { useGameStore } from '../../store/gameStore';
 export function LlmSettingsPanel() {
   const ghosts = useGameStore((s) => s.ghosts);
   const llmErrorCount = useGameStore((s) => s.llmErrorCount);
-  const lastLlmError = useGameStore((s) => s.lastLlmError);
-  const isActive = Boolean(import.meta.env.VITE_AI_GATEWAY_KEY);
+  const hasKey = Boolean(import.meta.env.VITE_AI_GATEWAY_KEY);
+  const isErroring = llmErrorCount > 0;
   const ghostsWithMemory = ghosts.filter((g) => (g.memory?.length ?? 0) > 0).length;
+
+  const status: 'active' | 'error' | 'inactive' = !hasKey
+    ? 'inactive'
+    : isErroring
+    ? 'error'
+    : 'active';
+
+  const statusColor = { active: '#4caf50', error: '#cc4444', inactive: '#888888' }[status];
+  const statusLabel = { active: '● ACTIVE', error: '● ERROR', inactive: '○ INACTIVE' }[status];
 
   function clearAllMemories() {
     useGameStore.setState((s) => ({
@@ -31,12 +40,8 @@ export function LlmSettingsPanel() {
         className="flex items-center justify-between p-2 rounded border"
         style={{ borderColor: 'var(--eq-border)', backgroundColor: '#1a1510' }}
       >
-        <span style={{ color: 'var(--eq-text-dim)' }}>Status</span>
-        {isActive ? (
-          <span style={{ color: '#4caf50', fontWeight: 'bold' }}>● ACTIVE</span>
-        ) : (
-          <span style={{ color: '#f44336', fontWeight: 'bold' }}>○ INACTIVE</span>
-        )}
+        <span style={{ color: 'var(--eq-text-dim)' }}>Ghost Chat Status</span>
+        <span style={{ color: statusColor, fontWeight: 'bold' }}>{statusLabel}</span>
       </div>
 
       {/* Model display */}
@@ -53,8 +58,9 @@ export function LlmSettingsPanel() {
         className="p-2 rounded border text-xs leading-relaxed"
         style={{ borderColor: 'var(--eq-border)', backgroundColor: '#1a1510', color: 'var(--eq-text-dim)' }}
       >
-        Ghost agents generate contextual chat powered by GPT-4.1 Mini via Vercel AI Gateway.
-        3 ghosts are called every 50 ticks. Each call costs ~$0.0001.
+        Ghost agents generate in-character chat messages via the Vercel AI Gateway.
+        Up to 3 ghosts are called every ~50 ticks. Each call costs ~$0.0001.
+        Ghost simulation runs normally with or without this feature enabled.
       </div>
 
       {/* Stats */}
@@ -71,17 +77,8 @@ export function LlmSettingsPanel() {
         className="flex items-center justify-between p-2 rounded border"
         style={{ borderColor: 'var(--eq-border)', backgroundColor: '#1a1510' }}
       >
-        <span style={{ color: 'var(--eq-text-dim)' }}>LLM errors (session)</span>
+        <span style={{ color: 'var(--eq-text-dim)' }}>Failed calls (session)</span>
         <span style={{ color: llmErrorCount > 0 ? '#cc4444' : 'var(--eq-gold)', fontWeight: 'bold' }}>{llmErrorCount}</span>
-      </div>
-
-      {/* Last LLM error */}
-      <div
-        className="p-2 rounded border text-xs leading-relaxed"
-        style={{ borderColor: 'var(--eq-border)', backgroundColor: '#1a1510', color: 'var(--eq-text-dim)' }}
-      >
-        <span style={{ color: 'var(--eq-text-dim)' }}>Last LLM error: </span>
-        <span style={{ color: lastLlmError ? '#cc4444' : 'var(--eq-text-dim)' }}>{lastLlmError ?? 'None'}</span>
       </div>
 
       {/* Clear memories button */}
@@ -99,8 +96,31 @@ export function LlmSettingsPanel() {
         Clear All Ghost Memories
       </button>
 
-      {/* Setup instructions when inactive */}
-      {!isActive && (
+      {/* Error state: key is set but failing */}
+      {status === 'error' && (
+        <div
+          className="p-2 rounded border leading-relaxed space-y-2"
+          style={{ borderColor: '#883333', backgroundColor: '#1a0a0a', color: '#cc6666' }}
+        >
+          <div className="font-bold" style={{ color: '#ee6666' }}>⚠ Gateway Key Error</div>
+          <div>
+            Your gateway key is set but calls are failing (HTTP 500 from Vercel). The key may be
+            expired, over quota, or invalid.
+          </div>
+          <div>
+            To fix: go to{' '}
+            <span style={{ color: '#f0a070' }}>vercel.com → AI → AI Gateway → API Keys</span>,
+            generate a new key, and update <span style={{ color: '#f0c070' }}>VITE_AI_GATEWAY_KEY</span>{' '}
+            in your <span style={{ color: '#f0c070' }}>.env.local</span> file, then restart.
+          </div>
+          <div style={{ color: '#886666', fontSize: '10px' }}>
+            The game runs fully without ghost chat — this only affects in-character messages in the log.
+          </div>
+        </div>
+      )}
+
+      {/* Inactive state: no key set */}
+      {status === 'inactive' && (
         <div
           className="p-2 rounded border leading-relaxed"
           style={{ borderColor: '#8b4513', backgroundColor: '#1a0f08', color: '#cc8844' }}
@@ -120,6 +140,16 @@ export function LlmSettingsPanel() {
             Get your key from{' '}
             <span style={{ color: 'var(--eq-gold)' }}>vercel.com → AI → AI Gateway → API Keys</span>.
           </div>
+        </div>
+      )}
+
+      {/* Active state: working */}
+      {status === 'active' && (
+        <div
+          className="p-2 rounded border text-xs leading-relaxed"
+          style={{ borderColor: '#336633', backgroundColor: '#0a1a0a', color: '#66cc66' }}
+        >
+          ✓ Ghost chat is active. Ghosts will speak in character in the combat log.
         </div>
       )}
     </div>
