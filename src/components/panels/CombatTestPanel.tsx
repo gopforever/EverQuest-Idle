@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, Fragment } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import {
   calcMeleeMaxHit,
@@ -536,6 +536,152 @@ function CombatSimulation() {
   );
 }
 
+// ── Section: Group Combat Test ────────────────────────────────────────────────
+
+const BB_MONSTERS: { id: string; midLevel: number }[] = [
+  { id: 'gnoll_pup', midLevel: 2 },
+  { id: 'gnoll_warrior', midLevel: 5 },
+  { id: 'gnoll_shaman', midLevel: 8 },
+  { id: 'gnoll_warlord', midLevel: 10 },
+];
+const BB_ZEM = 120;
+
+function GroupCombatTest() {
+  const currentZone = useGameStore((s) => s.currentZone);
+  const ghosts = useGameStore((s) => s.ghosts);
+  const group = useGameStore((s) => s.group);
+  const player = useGameStore((s) => s.player);
+  const inviteGhost = useGameStore((s) => s.inviteGhost);
+  const kickGhost = useGameStore((s) => s.kickGhost);
+  const disbandGroup = useGameStore((s) => s.disbandGroup);
+
+  const availableGhosts = ghosts
+    .filter((g) => g.isOnline && !group.members.includes(g.id))
+    .slice(0, 30);
+
+  const [selectedGhostId, setSelectedGhostId] = useState(() => availableGhosts[0]?.id ?? '');
+
+  // If the currently selected ghost is no longer available, reset to the first available
+  const effectiveSelectedId = availableGhosts.some((g) => g.id === selectedGhostId)
+    ? selectedGhostId
+    : (availableGhosts[0]?.id ?? '');
+
+  const groupSize = group.members.length + 1;
+  const classMod = getClassXpModifier(player.class);
+
+  function teleportToBlackburrow() {
+    useGameStore.getState().changeZone('blackburrow');
+  }
+
+  function quickFill() {
+    const spotsLeft = 5 - group.members.length;
+    const toInvite = ghosts
+      .filter((g) => g.isOnline && !group.members.includes(g.id))
+      .slice(0, spotsLeft);
+    toInvite.forEach((g) => inviteGhost(g.id));
+  }
+
+  return (
+    <>
+      <div style={sectionHeaderStyle}>GROUP COMBAT TESTING</div>
+
+      {/* Sub-area 1: Zone Setup */}
+      <div style={rowStyle}>
+        <button style={btnStyle} onClick={teleportToBlackburrow}>
+          📍 Teleport to Blackburrow
+        </button>
+      </div>
+      <div style={{ fontSize: '11px', color: 'var(--eq-text-dim)', padding: '2px 0 6px 0' }}>
+        Currently in: {currentZone?.name ?? currentZone?.id ?? '—'}
+      </div>
+
+      {/* Sub-area 2: Group Management */}
+      <div style={{ fontSize: '11px', color: 'var(--eq-gold)', marginBottom: '2px' }}>GROUP MEMBERS</div>
+
+      {group.members.length === 0 ? (
+        <div style={{ fontSize: '11px', color: 'var(--eq-text-dim)', padding: '2px 0' }}>No members in group.</div>
+      ) : (
+        group.members.map((ghostId) => {
+          const ghost = ghosts.find((g) => g.id === ghostId);
+          if (!ghost) return null;
+          return (
+            <div key={ghostId} style={{ ...rowStyle, gap: '4px' }}>
+              <button
+                style={{ ...btnStyle, color: '#a04040', borderColor: '#a04040', padding: '1px 5px' }}
+                onClick={() => kickGhost(ghostId)}
+              >
+                Kick
+              </button>
+              <span style={{ fontSize: '11px' }}>
+                {ghost.name} — {ghost.race} {ghost.class} Lv{ghost.level}
+              </span>
+            </div>
+          );
+        })
+      )}
+
+      <div style={{ marginTop: '4px', fontSize: '11px', color: 'var(--eq-text-dim)' }}>
+        Group: 1 + {group.members.length} members
+      </div>
+
+      <div style={{ fontSize: '11px', color: 'var(--eq-gold)', marginTop: '6px', marginBottom: '2px' }}>Add Ghost to Group</div>
+      <div style={rowStyle}>
+        <select
+          value={effectiveSelectedId}
+          onChange={(e) => setSelectedGhostId(e.target.value)}
+          style={{ ...wideInputStyle, width: '160px' }}
+        >
+          {availableGhosts.map((g) => (
+            <option key={g.id} value={g.id}>
+              {g.name} ({g.race} {g.class.slice(0, 3)} Lv{g.level})
+            </option>
+          ))}
+        </select>
+        <button style={btnStyle} onClick={() => { if (effectiveSelectedId) inviteGhost(effectiveSelectedId); }}>
+          Invite
+        </button>
+      </div>
+
+      <div style={{ ...rowStyle, marginTop: '4px', gap: '6px' }}>
+        <button style={btnStyle} onClick={quickFill} disabled={group.members.length >= 5}>
+          Quick Fill Group
+        </button>
+        <button
+          style={{ ...btnStyle, color: '#a04040', borderColor: '#a04040' }}
+          onClick={disbandGroup}
+          disabled={group.members.length === 0}
+        >
+          Disband Group
+        </button>
+      </div>
+
+      {/* Sub-area 3: Group XP Preview */}
+      <div style={{ fontSize: '11px', color: 'var(--eq-gold)', marginTop: '8px', marginBottom: '2px' }}>GROUP XP PREVIEW (Blackburrow, ZEM {BB_ZEM})</div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto', gap: '2px 8px', fontSize: '11px', alignItems: 'center' }}>
+        <span style={{ color: 'var(--eq-text-dim)', fontWeight: 'bold' }}>Monster</span>
+        <span style={{ color: 'var(--eq-text-dim)', fontWeight: 'bold' }}>BaseXP</span>
+        <span style={{ color: 'var(--eq-text-dim)', fontWeight: 'bold' }}>Group XP</span>
+        <span style={{ color: 'var(--eq-text-dim)', fontWeight: 'bold' }}>Your XP</span>
+        {BB_MONSTERS.map(({ id, midLevel }) => {
+          const monster = MONSTERS[id];
+          if (!monster) return null;
+          const baseXp = monster.xpReward;
+          const groupXp = calcXpReward(midLevel, BB_ZEM, groupSize);
+          const yourXp = Math.floor(groupXp * classMod);
+          return (
+            <Fragment key={id}>
+              <span>{monster.name}</span>
+              <span style={{ color: 'var(--eq-text-dim)', textAlign: 'right' }}>{baseXp}</span>
+              <span style={{ color: 'var(--eq-orange, #e09040)', textAlign: 'right' }}>{groupXp}</span>
+              <span style={{ color: '#5ddb5d', textAlign: 'right' }}>{yourXp}</span>
+            </Fragment>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
 // ── Section: Melee Hit Calculator ─────────────────────────────────────────────
 
 function MeleeHitCalc() {
@@ -965,6 +1111,7 @@ export function CombatTestPanel() {
 
       <SetupControls />
       <CombatSimulation />
+      <GroupCombatTest />
       <MeleeHitCalc />
       <DpsEstimate />
       <HitChanceCalc />
