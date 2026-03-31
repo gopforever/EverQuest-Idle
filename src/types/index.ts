@@ -303,5 +303,6 @@ export interface GameState {
   currentZone: Zone;
   tickCount: number;
   gameStarted: boolean;
+  characterCreated: boolean;
   bazaar: BazaarState;
 }
