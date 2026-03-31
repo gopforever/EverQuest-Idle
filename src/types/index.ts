@@ -213,6 +213,45 @@ export interface CharacterStats {
 
 export type EquipmentSlots = Partial<Record<EquipSlot, Item>>;
 
+/** Persistent counters for achievement tracking */
+export interface PlayerTracking {
+  totalKills: number;
+  gnollKills: number;
+  undeadKills: number;
+  giantKills: number;
+  dragonKills: number;
+  zonesVisited: string[];         // zone IDs visited
+  continentsVisited: string[];    // 'Antonica' | 'Faydwer' | 'Odus' | 'Planes'
+  tradeskillCombines: number;
+  bazaarPurchases: number;
+  bazaarSales: number;
+  platEarned: number;             // lifetime plat earned
+  deathsTotal: number;
+  groupsFormed: number;           // times player was in a group
+  timesGroupedWithGhost: number;
+  raidBossesKilled: string[];     // monster IDs of raid bosses killed
+}
+
+export function defaultTracking(): PlayerTracking {
+  return {
+    totalKills: 0,
+    gnollKills: 0,
+    undeadKills: 0,
+    giantKills: 0,
+    dragonKills: 0,
+    zonesVisited: [],
+    continentsVisited: [],
+    tradeskillCombines: 0,
+    bazaarPurchases: 0,
+    bazaarSales: 0,
+    platEarned: 0,
+    deathsTotal: 0,
+    groupsFormed: 0,
+    timesGroupedWithGhost: 0,
+    raidBossesKilled: [],
+  };
+}
+
 export interface PlayerCharacter {
   name: string;
   race: Race;
@@ -227,6 +266,7 @@ export interface PlayerCharacter {
   currentZone: string;
   skills: Record<string, number>;
   deathCount: number; // total deaths for stat tracking
+  tracking?: PlayerTracking;
 }
 
 export type GhostGoalType =

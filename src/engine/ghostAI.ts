@@ -1,6 +1,7 @@
 import type { GameState, GhostPlayer, CombatLogEntry, CharacterClass, GhostGoal, ServerEvent } from '../types';
 import { ZONES } from '../data/zones';
 import { MONSTERS } from '../data/monsters';
+import { checkGhostAchievements } from './ghostAchievements';
 import {
   calcActualMeleeHit,
   calcHitChance,
@@ -703,6 +704,14 @@ export function processGhostTick(
       // Spawn the next monster immediately
       const next = spawnMonsterForGhost(g, tickCount);
       if (next) ghostCombatMap.set(g.id, next);
+    }
+
+    // ── Achievement check (every 10 ticks per ghost) ─────────────────────
+    if (tickCount % 10 === 0) {
+      const newAchIds = checkGhostAchievements(g);
+      if (newAchIds.length > 0) {
+        g = { ...g, achievements: [...g.achievements, ...newAchIds] };
+      }
     }
 
     return g;

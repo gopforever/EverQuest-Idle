@@ -1,4 +1,5 @@
-import type { GameState, CombatLogEntry, Monster, Zone, Item, GhostPlayer, CharacterClass } from '../types';
+import type { GameState, CombatLogEntry, Monster, Zone, Item, GhostPlayer, CharacterClass, PlayerTracking } from '../types';
+import { defaultTracking } from '../types';
 import {
   calcActualMeleeHit,
   calcHitChance,
@@ -335,6 +336,40 @@ export function processTick(state: GameState): Partial<GameState> {
       newLog.push(makeLogEntry(`You have reached level ${newLevel}!`, 'system'));
     }
 
+    // ── Kill tracking ────────────────────────────────────────────────────
+    const tracking: PlayerTracking = { ...(player.tracking ?? defaultTracking()) };
+    tracking.totalKills += 1;
+    // Track lifetime plat earned (1 pp = 10 gp = 100 sp = 1000 cp)
+    tracking.platEarned += Math.floor((cpGained + spGained * 10 + gpGained * 100) / 1000);
+    const monsterNameLower = currentMonster.name.toLowerCase();
+    if (currentMonster.type === 'humanoid' && monsterNameLower.includes('gnoll')) {
+      tracking.gnollKills += 1;
+    }
+    if (currentMonster.type === 'undead') {
+      tracking.undeadKills += 1;
+    }
+    if (monsterNameLower.includes('giant')) {
+      tracking.giantKills += 1;
+    }
+    if (
+      monsterNameLower.includes('dragon') ||
+      currentMonster.id.includes('nagafen') ||
+      currentMonster.id.includes('vox')
+    ) {
+      tracking.dragonKills += 1;
+      if (!tracking.raidBossesKilled.includes(currentMonster.id)) {
+        tracking.raidBossesKilled = [...tracking.raidBossesKilled, currentMonster.id];
+      }
+    }
+    // Zone and continent tracking is handled by changeZone; also track here
+    // so kills register the current zone even without an explicit zone change
+    if (!tracking.zonesVisited.includes(currentZone.id)) {
+      tracking.zonesVisited = [...tracking.zonesVisited, currentZone.id];
+    }
+    if (!tracking.continentsVisited.includes(currentZone.continent)) {
+      tracking.continentsVisited = [...tracking.continentsVisited, currentZone.continent];
+    }
+
     player = {
       ...player,
       xp: newXp,
@@ -342,6 +377,7 @@ export function processTick(state: GameState): Partial<GameState> {
       xpToNextLevel: newXpToNext,
       skills: newSkills,
       inventory,
+      tracking,
       currency: {
         pp: player.currency.pp,
         gp: player.currency.gp + gpGained,

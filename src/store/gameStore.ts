@@ -12,6 +12,7 @@ import type {
   BazaarState,
   GroupState,
 } from '../types';
+import { defaultTracking } from '../types';
 import { ZONES, STARTING_ZONE } from '../data/zones';
 import { processTick } from '../engine/tick';
 import { processGhostTick } from '../engine/ghostAI';
@@ -117,6 +118,7 @@ function makeInitialPlayer(): PlayerCharacter {
     currentZone: 'qeynos_hills',
     skills: buildStartingSkills('Warrior'),
     deathCount: 0,
+    tracking: defaultTracking(),
   };
 }
 
@@ -224,6 +226,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         currentZone: startingZoneId,
         skills,
         deathCount: 0,
+        tracking: defaultTracking(),
       },
       currentZone: startingZone,
       combat: initialCombat,
@@ -273,10 +276,21 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
 
     // Stop combat when changing zones
+    const tracking = player.tracking ?? defaultTracking();
+    const newZonesVisited = tracking.zonesVisited.includes(zoneId)
+      ? tracking.zonesVisited
+      : [...tracking.zonesVisited, zoneId];
+    const newContinentsVisited = tracking.continentsVisited.includes(zone.continent)
+      ? tracking.continentsVisited
+      : [...tracking.continentsVisited, zone.continent];
     set({
       currentZone: zone,
       combat: { ...get().combat, autoAttacking: false, currentMonster: null, monsterCurrentHp: 0 },
-      player: { ...player, currentZone: zoneId },
+      player: {
+        ...player,
+        currentZone: zoneId,
+        tracking: { ...tracking, zonesVisited: newZonesVisited, continentsVisited: newContinentsVisited },
+      },
     });
     get().addCombatLogEntry({
       message: `You enter ${zone.name}.`,
@@ -504,7 +518,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
     });
 
     set({
-      player: { ...player, inventory: newInventory, currency: newCurrency },
+      player: {
+        ...player,
+        inventory: newInventory,
+        currency: newCurrency,
+        tracking: {
+          ...(player.tracking ?? defaultTracking()),
+          bazaarPurchases: (player.tracking?.bazaarPurchases ?? 0) + 1,
+        } as typeof player.tracking,
+      },
       bazaar: { ...bazaar, listings: newListings },
     });
   },
@@ -531,7 +553,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
     };
 
     set({
-      player: { ...player, inventory: newInventory },
+      player: {
+        ...player,
+        inventory: newInventory,
+        tracking: {
+          ...(player.tracking ?? defaultTracking()),
+          bazaarSales: (player.tracking?.bazaarSales ?? 0) + 1,
+        },
+      },
       bazaar: { ...bazaar, listings: [...bazaar.listings, listing] },
     });
 
@@ -580,6 +609,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
         ...player,
         inventory: result.updatedInventory,
         skills: result.updatedSkills,
+        tracking: result.success
+          ? {
+              ...(player.tracking ?? defaultTracking()),
+              tradeskillCombines: (player.tracking?.tradeskillCombines ?? 0) + 1,
+            }
+          : player.tracking,
       },
     });
 
@@ -616,10 +651,20 @@ export const useGameStore = create<GameStore>((set, get) => ({
       message: `${ghost.name} joins your group.`,
       type: 'system',
     };
+    const tracking = player.tracking ?? defaultTracking();
+    const isFirstMember = group.members.length === 0;
     set({
       ghosts: updatedGhosts,
       group: { ...group, members: [...group.members, ghostId] },
       combatLog: [...combatLog, newEntry].slice(-200),
+      player: {
+        ...player,
+        tracking: {
+          ...tracking,
+          timesGroupedWithGhost: tracking.timesGroupedWithGhost + 1,
+          groupsFormed: isFirstMember ? tracking.groupsFormed + 1 : tracking.groupsFormed,
+        },
+      },
     });
   },
 
