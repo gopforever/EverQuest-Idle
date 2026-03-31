@@ -286,6 +286,14 @@ export interface GhostGoal {
   progressTicks?: number;    // ticks spent on this goal
 }
 
+export interface GhostReputation {
+  title?: string;        // e.g. "Known Tank", "Famous Crafter", "Infamous Ninja"
+  killPoints: number;    // lifetime kill score
+  craftPoints: number;   // lifetime crafting score
+  raidPoints: number;    // lifetime raid boss kills
+  tradingPoints: number; // lifetime bazaar trades
+}
+
 export interface GhostPlayer {
   id: string;
   name: string;
@@ -313,6 +321,7 @@ export interface GhostPlayer {
   allies?: string[];           // ghost IDs this ghost considers friendly
   rivals?: string[];           // ghost IDs this ghost dislikes
   guildName?: string;
+  reputation?: GhostReputation;
 }
 
 export interface GroupState {

@@ -241,7 +241,7 @@ const GHOST_CHAT: Record<string, string[]> = {
 
 // Zone travel chance per tick-60 window, keyed by personality
 const ZONE_TRAVEL_CHANCE: Record<string, number> = {
-  Grinder: 0.10,
+  Grinder: 0.08,
   Tank: 0.10,
   Casual: 0.25,
   Social: 0.25,
@@ -333,6 +333,20 @@ function assignGoal(g: GhostPlayer): GhostGoal {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+/** Return the combat role for a given class. */
+function getClassRole(cls: CharacterClass): 'tank' | 'healer' | 'dps' | 'support' {
+  if (['Warrior', 'Paladin', 'ShadowKnight'].includes(cls as string)) return 'tank';
+  if (['Cleric', 'Druid', 'Shaman'].includes(cls as string)) return 'healer';
+  if (cls === 'Bard') return 'support';
+  return 'dps';
+}
+
+/** Append an entry to ghost memory, capped at 20 entries. */
+function addMemory(g: GhostPlayer, entry: string): GhostPlayer {
+  const memory = [...(g.memory ?? []), entry].slice(-20);
+  return { ...g, memory };
+}
+
 /** Cap a skill value: max(level × 5, 200). */
 function capGhostSkill(value: number, level: number): number {
   return Math.min(200, Math.min(level * 5, value));
@@ -356,7 +370,20 @@ function spawnMonsterForGhost(ghost: GhostPlayer, tickCount: number): GhostComba
   const zone = ZONES[ghost.currentZone];
   if (!zone || zone.monsters.length === 0) return null;
 
-  const monsterId = zone.monsters[Math.floor(Math.random() * zone.monsters.length)];
+  let monsterId: string;
+  if (ghost.personality === 'AFKFarmer') {
+    // Pick the monster with the lowest levelRange.min
+    monsterId = zone.monsters.reduce((weakest, mid) => {
+      const m = MONSTERS[mid];
+      const w = MONSTERS[weakest];
+      if (!m) return weakest;
+      if (!w) return mid;
+      return m.levelRange.min < w.levelRange.min ? mid : weakest;
+    }, zone.monsters[0]);
+  } else {
+    monsterId = zone.monsters[Math.floor(Math.random() * zone.monsters.length)];
+  }
+
   const monster = MONSTERS[monsterId];
   if (!monster) return null;
 
@@ -423,6 +450,15 @@ export function processGhostTick(
     // ── Recovery countdown ────────────────────────────────────────────────
     if (g.recoveryTicksRemaining > 0) {
       const remaining = g.recoveryTicksRemaining - 1;
+      // Log "running back" message on the first tick of recovery
+      const recoveryMax = Math.max(10, Math.floor(g.level * 1.5));
+      if (g.recoveryTicksRemaining === recoveryMax) {
+        newEntries.push(makeLogEntry(`${g.name} is running back to their corpse...`, 'system'));
+      }
+      // Log corpse recovery when countdown ends
+      if (remaining === 0) {
+        newEntries.push(makeLogEntry(`${g.name} has recovered their corpse.`, 'system'));
+      }
       // Regen HP/mana while recovering (not fighting)
       g = applyOutOfCombatRegen(g);
       g = {
@@ -497,9 +533,27 @@ export function processGhostTick(
               z.levelRange.max >= g.level - 5;
           });
           if (valid.length > 0) {
-            const newZoneId = valid[Math.floor(Math.random() * valid.length)];
+            let newZoneId: string;
+            if (g.personality === 'Grinder') {
+              // Pick the highest-level zone they can handle (level >= zone.levelRange.min)
+              const handleable = valid.filter((zid) => {
+                const z = ZONES[zid];
+                return z && g.level >= z.levelRange.min;
+              });
+              const pool = handleable.length > 0 ? handleable : valid;
+              newZoneId = pool.reduce((best, zid) => {
+                const z = ZONES[zid];
+                const b = ZONES[best];
+                if (!z) return best;
+                if (!b) return zid;
+                return z.levelRange.min > b.levelRange.min ? zid : best;
+              }, pool[0]);
+            } else {
+              newZoneId = valid[Math.floor(Math.random() * valid.length)];
+            }
             const newZone = ZONES[newZoneId];
             if (newZone) {
+              g = addMemory(g, `Explored ${newZone.name}`);
               g = { ...g, currentZone: newZoneId };
               ghostCombatMap.delete(g.id);
               newEntries.push(
@@ -510,9 +564,13 @@ export function processGhostTick(
         }
       }
 
-      // Merchant Bazaar restocking flavor (20% chance to avoid spam)
-      if (g.personality === 'Merchant' && (g.plat ?? 0) > 500 && Math.random() < 0.2) {
-        newEntries.push(makeLogEntry(`${g.name} is buying cheap at the Bazaar.`, 'system'));
+      // Merchant/Economist Bazaar flavor (20% chance to avoid spam) + tradingPoints
+      if ((g.personality === 'Merchant' || g.personality === 'Economist') && (g.plat ?? 0) > 500 && Math.random() < 0.2) {
+        const rep = g.reputation ?? { killPoints: 0, craftPoints: 0, raidPoints: 0, tradingPoints: 0 };
+        g = { ...g, reputation: { ...rep, tradingPoints: rep.tradingPoints + 1 } };
+        if (g.personality === 'Merchant') {
+          newEntries.push(makeLogEntry(`${g.name} is buying cheap at the Bazaar.`, 'system'));
+        }
       }
     }
 
@@ -521,6 +579,44 @@ export function processGhostTick(
     if (!zone || zone.monsters.length === 0) {
       // Not fighting — apply out-of-combat HP/mana regen
       g = applyOutOfCombatRegen(g);
+      return g;
+    }
+
+    // ── Pacifist: no combat, exploration XP every 30 ticks ───────────────
+    if (g.personality === 'Pacifist') {
+      g = applyOutOfCombatRegen(g);
+      g = { ...g, currentActivity: 'Exploring' };
+      if (tickCount % 30 === 0) {
+        const explorationXp = Math.floor(zone.zem * 0.5);
+        let newXp = g.xp + explorationXp;
+        let newLevel = g.level;
+        let newXpToNext = g.xpToNextLevel;
+        while (newLevel < 60) {
+          const xpNeeded = calcXpToNextLevel(newLevel);
+          if (newXp < xpNeeded) break;
+          newXp -= xpNeeded;
+          newLevel++;
+          newXpToNext = calcXpToNextLevel(newLevel);
+          const newMaxHp = calcMaxHpForLevel(newLevel, g.stats.sta, g.class);
+          const newMaxMana = calcMaxManaForLevel(newLevel, g.stats.wis, g.stats.int, g.class);
+          g = { ...g, stats: { ...g.stats, maxHp: newMaxHp, hp: newMaxHp, maxMana: newMaxMana, mana: newMaxMana } };
+          g = addMemory(g, `Reached level ${newLevel} in ${zone.name}`);
+          newEntries.push(makeLogEntry(`${g.name} has reached level ${newLevel}!`, 'system'));
+        }
+        g = { ...g, xp: newXp, level: newLevel, xpToNextLevel: newXpToNext };
+      }
+      return g;
+    }
+
+    // ── Tradeskiller: 70% of ticks spent crafting, not in combat ─────────
+    if (g.personality === 'Tradeskiller' && Math.random() < 0.7) {
+      g = applyOutOfCombatRegen(g);
+      g = { ...g, currentActivity: 'Crafting' };
+      const rep = g.reputation ?? { killPoints: 0, craftPoints: 0, raidPoints: 0, tradingPoints: 0 };
+      g = { ...g, reputation: { ...rep, craftPoints: rep.craftPoints + 1 } };
+      if (tickCount % 20 === 0) {
+        newEntries.push(makeLogEntry(`${g.name} is crafting at the forge.`, 'system'));
+      }
       return g;
     }
 
@@ -535,6 +631,61 @@ export function processGhostTick(
       ghostCombatMap.set(g.id, cs);
     }
 
+    // ── Determine role and apply role-specific activity/behavior ─────────
+    const role = getClassRole(g.class);
+    const monsterName = cs.monsterName;
+
+    // Check if ghost is in a group context (has allies in the same zone)
+    const coZonedGhosts = state.ghosts.filter(
+      (gh) => gh.id !== g.id && gh.isOnline && gh.currentZone === g.currentZone && gh.recoveryTicksRemaining === 0
+    );
+    const inGroup = coZonedGhosts.length > 0;
+
+    if (role === 'tank') {
+      g = { ...g, currentActivity: 'Tanking' };
+    } else if (role === 'healer' && inGroup) {
+      // Healer: scan co-zoned ghosts for HP < 80%, heal them; else meditate
+      g = { ...g, currentActivity: 'Healing' };
+      const needsHeal = coZonedGhosts.find(
+        (gh) => gh.stats.maxHp > 0 && gh.stats.hp / gh.stats.maxHp < 0.8
+      );
+      if (needsHeal && g.stats.mana > 0) {
+        const healAmt = Math.floor(g.stats.maxMana * 0.08);
+        const manaCost = healAmt;
+        g = { ...g, stats: { ...g.stats, mana: Math.max(0, g.stats.mana - manaCost) } };
+        newEntries.push(makeLogEntry(`${g.name} heals ${needsHeal.name} for ${healAmt} HP.`, 'spell'));
+      } else if (g.stats.mana < g.stats.maxMana * 0.5) {
+        g = { ...g, currentActivity: 'Meditating' };
+        newEntries.push(makeLogEntry(`${g.name} is meditating.`, 'system'));
+        const manaRegen = Math.floor(g.stats.maxMana * 0.15);
+        g = { ...g, stats: { ...g.stats, mana: Math.min(g.stats.maxMana, g.stats.mana + manaRegen) } };
+      }
+      // Healers in group do not attack — skip rest of combat for this ghost
+      g = applyOutOfCombatRegen(g);
+      return g;
+    } else if (role === 'support') {
+      // Bard: play songs every 5 ticks, reduced melee damage
+      g = { ...g, currentActivity: 'Playing' };
+      if (tickCount % 5 === 0) {
+        const BARD_SONGS = [
+          "Selo's Accelerando",
+          "Jonthan's Provocation",
+          "Brusco's Boastful Bellow",
+          "Cassindra's Chorus of Clarity",
+          "Kelin's Lugubrious Lament",
+        ];
+        const song = BARD_SONGS[Math.floor(Math.random() * BARD_SONGS.length)];
+        newEntries.push(makeLogEntry(`${g.name} begins playing [${song}].`, 'system'));
+      }
+    } else {
+      // DPS
+      if (CASTER_CLASSES.includes(g.class)) {
+        g = { ...g, currentActivity: 'Casting' };
+      } else {
+        g = { ...g, currentActivity: 'Melee DPS' };
+      }
+    }
+
     // ── Ghost attacks its monster (weapon-delay gated) ────────────────────
     const weaponDamage = getWeaponDamage(g.gear);
     const weaponDelay = getWeaponDelay(g.gear);
@@ -543,22 +694,33 @@ export function processGhostTick(
 
     const offenseSkill = g.skills['Offense'] ?? g.level * 2;
     const defenseSkill = cs.monsterLevel * 2;
-    const hitChance = calcHitChance(offenseSkill, defenseSkill);
+    let hitChance = calcHitChance(offenseSkill, defenseSkill);
+    // Speedrunner: hit chance floors at 0.80
+    if (g.personality === 'Speedrunner') hitChance = Math.max(0.80, hitChance);
 
     if (canSwing) {
       cs = { ...cs, lastSwingTick: tickCount };
       ghostCombatMap.set(g.id, cs);
 
       if (Math.random() < hitChance) {
-        const dmg = calcActualMeleeHit(weaponDamage, g.level, g.stats.str);
+        let dmg = calcActualMeleeHit(weaponDamage, g.level, g.stats.str);
+        // Bard: reduced melee damage (50%)
+        if (role === 'support') dmg = Math.max(1, Math.floor(dmg * 0.5));
         cs = { ...cs, monsterHp: cs.monsterHp - dmg };
         ghostCombatMap.set(g.id, cs);
 
-        // Double attack proc
-        if (Math.random() < calcDoubleAttackChance(g.stats.dex, g.class)) {
-          const dmg2 = calcActualMeleeHit(weaponDamage, g.level, g.stats.str);
+        // Speedrunner: always double attack (never misses double)
+        const doubleChance = g.personality === 'Speedrunner' ? 1.0 : calcDoubleAttackChance(g.stats.dex, g.class);
+        if (Math.random() < doubleChance) {
+          let dmg2 = calcActualMeleeHit(weaponDamage, g.level, g.stats.str);
+          if (role === 'support') dmg2 = Math.max(1, Math.floor(dmg2 * 0.5));
           cs = { ...cs, monsterHp: cs.monsterHp - dmg2 };
           ghostCombatMap.set(g.id, cs);
+        }
+
+        // Tank: taunt (30% proc rate)
+        if (role === 'tank' && Math.random() < 0.3) {
+          newEntries.push(makeLogEntry(`${g.name} taunts ${monsterName}!`, 'system'));
         }
       }
 
@@ -597,6 +759,7 @@ export function processGhostTick(
         newEntries.push(
           makeLogEntry(`${g.name} has been slain by ${cs.monsterName}!`, 'death'),
         );
+        g = addMemory(g, `Died to ${cs.monsterName} in ${zone.name} at level ${g.level}`);
         const xpLost = calcDeathXpLoss(g.xpToNextLevel);
         const newXp = Math.max(0, g.xp - xpLost);
         if (xpLost > 0) {
@@ -612,7 +775,7 @@ export function processGhostTick(
           deathCount: g.deathCount + 1,
           stats: { ...g.stats, hp: bindHp, mana: bindMana },
           currentActivity: 'Recovering',
-          recoveryTicksRemaining: 30,
+          recoveryTicksRemaining: Math.max(10, Math.floor(g.level * 1.5)),
         };
         ghostCombatMap.delete(g.id);
         return g;
@@ -622,6 +785,13 @@ export function processGhostTick(
     // ── Monster killed? ───────────────────────────────────────────────────
     if (cs.monsterHp <= 0) {
       ghostCombatMap.delete(g.id);
+
+      // Memory: record the kill
+      g = addMemory(g, `Killed ${cs.monsterName} in ${zone.name} at level ${g.level}`);
+
+      // Reputation: increment killPoints
+      const repOnKill = g.reputation ?? { killPoints: 0, craftPoints: 0, raidPoints: 0, tradingPoints: 0 };
+      g = { ...g, reputation: { ...repOnKill, killPoints: repOnKill.killPoints + 1 } };
 
       // Determine group size for XP
       const ghostInPlayerZone =
@@ -634,9 +804,10 @@ export function processGhostTick(
         : 0;
       const groupSize = ghostInPlayerZone ? 1 + groupedGhostsInZone : 1;
 
-      // XP gain
+      // XP gain (Loner: -20%)
       const baseXp = calcBaseXp(cs.monsterLevel, zone.zem, groupSize);
-      const xpGained = applyClassModifier(baseXp, g.class);
+      let xpGained = applyClassModifier(baseXp, g.class);
+      if (g.personality === 'Loner') xpGained = Math.floor(xpGained * 0.8);
 
       let newXp = g.xp + xpGained;
       let newLevel = g.level;
@@ -664,6 +835,7 @@ export function processGhostTick(
           },
         };
 
+        g = addMemory(g, `Reached level ${newLevel} in ${zone.name}`);
         newEntries.push(
           makeLogEntry(`${g.name} has reached level ${newLevel}!`, 'system'),
         );
@@ -704,6 +876,24 @@ export function processGhostTick(
       // Spawn the next monster immediately
       const next = spawnMonsterForGhost(g, tickCount);
       if (next) ghostCombatMap.set(g.id, next);
+    }
+
+    // ── Reputation title check (every 50 ticks) ───────────────────────────
+    if (tickCount % 50 === 0 && g.reputation) {
+      const rep = g.reputation;
+      let newTitle: string | undefined;
+      if (rep.killPoints >= 500) newTitle = 'Veteran Slayer';
+      else if (rep.raidPoints >= 10) newTitle = 'Famous Raider';
+      else if (rep.craftPoints >= 200) newTitle = 'Master Crafter';
+      else if (rep.tradingPoints >= 100) newTitle = 'Merchant Prince';
+      else if (g.personality === 'NinjaLooter' && rep.killPoints > 50) newTitle = 'Infamous Ninja';
+      else if (g.personality === 'Tank' && rep.killPoints >= 100) newTitle = 'Known Tank';
+      else if (g.personality === 'Healer' && rep.killPoints >= 100) newTitle = 'Trusted Healer';
+
+      if (newTitle && newTitle !== rep.title) {
+        g = { ...g, reputation: { ...rep, title: newTitle } };
+        newEntries.push(makeLogEntry(`${g.name} has earned the title: ${newTitle}!`, 'system'));
+      }
     }
 
     // ── Achievement check (every 10 ticks per ghost) ─────────────────────
@@ -784,10 +974,14 @@ export function processGhostTick(
         const prefix = GUILD_PREFIXES[Math.floor(Math.random() * GUILD_PREFIXES.length)];
         const suffix = GUILD_SUFFIXES[Math.floor(Math.random() * GUILD_SUFFIXES.length)];
         const guildName = `${prefix} ${suffix}`;
-        ghostById.set(ghost.id, { ...ghost, guildName });
+        const founderWithMemory = addMemory({ ...ghost, guildName }, `Joined guild <${guildName}>`);
+        ghostById.set(ghost.id, founderWithMemory);
         for (const allyId of allies) {
           const ally = ghostById.get(allyId);
-          if (ally && !ally.guildName) ghostById.set(allyId, { ...ally, guildName });
+          if (ally && !ally.guildName) {
+            const allyWithMemory = addMemory({ ...ally, guildName }, `Joined guild <${guildName}>`);
+            ghostById.set(allyId, allyWithMemory);
+          }
         }
         newEntries.push(
           makeLogEntry(`<${guildName}> has been formed by ${ghost.name}!`, 'system'),
@@ -798,6 +992,40 @@ export function processGhostTick(
           type: 'guildFormed',
           message: `<${guildName}> has been formed by ${ghost.name}!`,
         });
+      }
+    }
+
+    // ── Raid formation check ───────────────────────────────────────────────
+    const raidPersonalities = new Set(['Grinder', 'Tank', 'Healer']);
+    for (const [zoneId, gids] of zoneMap.entries()) {
+      for (const gid of gids) {
+        const ghost = ghostById.get(gid);
+        if (!ghost) continue;
+        if (!raidPersonalities.has(ghost.personality)) continue;
+        if (ghost.level < 46) continue;
+        const allies = ghost.allies ?? [];
+        if (allies.length < 5) continue;
+        if (Math.random() >= 0.002) continue;
+
+        const zoneData = ZONES[zoneId];
+        const zoneName = zoneData ? zoneData.name : zoneId;
+        newEntries.push(
+          makeLogEntry(
+            `*** A raid force is forming in ${zoneName}! ${ghost.name} is leading the charge. ***`,
+            'system',
+          ),
+        );
+        // Increment raidPoints for the raid leader
+        const raidRep = ghost.reputation ?? { killPoints: 0, craftPoints: 0, raidPoints: 0, tradingPoints: 0 };
+        ghostById.set(ghost.id, { ...ghost, reputation: { ...raidRep, raidPoints: raidRep.raidPoints + 1 } });
+        newServerEvents.push({
+          id: generateId(),
+          tick: tickCount,
+          type: 'raidKill',
+          message: `A raid force has assembled in ${zoneName}! Norrath trembles.`,
+        });
+        // Only form one raid per zone per pass
+        break;
       }
     }
 
