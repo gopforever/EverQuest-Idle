@@ -1,4 +1,4 @@
-type PanelId = 'inventory' | 'skills' | 'spells' | 'zones' | 'tradeskill' | 'bazaar' | 'guild' | 'achievements' | 'who' | 'combat_test' | 'agents';
+type PanelId = 'inventory' | 'skills' | 'spells' | 'zones' | 'tradeskill' | 'bazaar' | 'guild' | 'achievements' | 'who' | 'agents';
 
 interface LeftPanelProps {
   activePanel: PanelId;
@@ -16,7 +16,6 @@ const PANELS: { id: PanelId; label: string }[] = [
   { id: 'achievements', label: 'ACHIEVE' },
   { id: 'who', label: 'WHO' },
   { id: 'agents', label: '✦ AGENTS' },
-  { id: 'combat_test', label: 'COMBAT TEST' },
 ];
 
 export function LeftPanel({ activePanel, onPanelChange }: LeftPanelProps) {

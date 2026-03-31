@@ -13,7 +13,6 @@ import { GuildPanel } from './components/panels/GuildPanel';
 import { AchievementsPanel } from './components/panels/AchievementsPanel';
 import { BazaarPanel } from './components/panels/BazaarPanel';
 import { TradeskillPanel } from './components/panels/TradeskillPanel';
-import { CombatTestPanel } from './components/panels/CombatTestPanel';
 import { LlmSettingsPanel } from './components/panels/LlmSettingsPanel';
 import { useGameLoop } from './hooks/useGameLoop';
 import { useGameStore } from './store/gameStore';
@@ -32,7 +31,6 @@ function PanelContent({ activePanel }: { activePanel: PanelId }) {
     case 'achievements': return <AchievementsPanel />;
     case 'bazaar': return <BazaarPanel />;
     case 'tradeskill': return <TradeskillPanel />;
-    case 'combat_test': return <CombatTestPanel />;
   }
 }
 
