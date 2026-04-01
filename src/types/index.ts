@@ -399,6 +399,130 @@ export interface ServerEvent {
   message: string;
 }
 
+// ── Spell types ─────────────────────────────────────────────────────────────
+
+export type SpellSchool = 'fire' | 'cold' | 'magic' | 'disease' | 'poison' | 'divine' | 'song';
+
+export type SpellEffect =
+  | 'dd'          // direct damage
+  | 'dot'         // damage over time
+  | 'heal'        // direct heal
+  | 'hot'         // heal over time
+  | 'buff'        // stat/resist buff
+  | 'debuff'      // stat/resist debuff
+  | 'slow'        // attack speed slow
+  | 'haste'       // attack speed haste
+  | 'mez'         // mesmerize
+  | 'root'        // root
+  | 'fear'        // fear
+  | 'charm'       // charm
+  | 'lifetap'     // lifetap
+  | 'pet'         // summon pet
+  | 'port'        // teleport
+  | 'snare'       // movement slow
+  | 'rune';       // absorb damage shield
+
+export interface Spell {
+  id: string;
+  name: string;
+  class: CharacterClass;
+  level: number;            // level required to use
+  school: SpellSchool;
+  effect: SpellEffect;
+  manaCost: number;
+  castTime: number;         // in seconds (ticks)
+  recastTime: number;       // in seconds
+  duration: number;         // in ticks (0 = instant)
+  value: number;            // damage / heal / buff amount
+  dotValue?: number;        // per-tick damage for DoT
+  description: string;
+  targetSelf?: boolean;     // true = self-only
+  targetGroup?: boolean;    // true = group-wide
+  targetAoE?: boolean;      // true = AoE
+  resistable?: boolean;
+}
+
+// ── Faction types ────────────────────────────────────────────────────────────
+
+export type FactionStandingName =
+  | 'Scowling'
+  | 'Glaring'
+  | 'Dubious'
+  | 'Apprehensive'
+  | 'Indifferent'
+  | 'Amiable'
+  | 'Kindly'
+  | 'Warmly'
+  | 'Ally';
+
+export interface Faction {
+  id: string;
+  name: string;
+  description: string;
+  city?: string;
+  alignment: 'good' | 'neutral' | 'evil';
+  /** Starting standing for a neutral character (0 = Indifferent) */
+  defaultValue: number;
+  /** Kill these monsters to LOWER this faction */
+  killedBy?: string[];
+  /** Kill these monsters to RAISE this faction */
+  raisedByKilling?: string[];
+  /** Related factions that move together (same sign) */
+  linkedFactions?: { factionId: string; modifier: number }[];
+}
+
+export interface FactionStanding {
+  factionId: string;
+  value: number;       // -2000 to +2000
+  standing: FactionStandingName;
+}
+
+// ── Quest types ──────────────────────────────────────────────────────────────
+
+export type QuestCategory = 'faction' | 'epic_precursor' | 'plane_access' | 'tradeskill' | 'lore';
+
+export interface QuestStep {
+  id: string;
+  description: string;
+  /** Monster ID to kill for this step */
+  killMonsterId?: string;
+  killCount?: number;
+  /** Item ID required for this step */
+  requireItemId?: string;
+  /** Faction required to complete */
+  requireFactionId?: string;
+  requireFactionStanding?: FactionStandingName;
+  /** Zone required to be in */
+  requireZoneId?: string;
+  /** Level requirement */
+  requireLevel?: number;
+}
+
+export interface Quest {
+  id: string;
+  name: string;
+  description: string;
+  category: QuestCategory;
+  startZone: string;
+  minLevel: number;
+  steps: QuestStep[];
+  rewards: {
+    xp?: number;
+    currency?: { pp?: number; gp?: number; sp?: number; cp?: number };
+    itemIds?: string[];
+    factionChanges?: { factionId: string; amount: number }[];
+  };
+  prerequisiteQuestIds?: string[];
+  npcName?: string;
+}
+
+export interface ActiveQuest {
+  questId: string;
+  stepIndex: number;          // current step (0-based)
+  stepProgress: number;       // kills / items toward current step
+  startedAt: number;          // tickCount when started
+}
+
 export interface GameState {
   player: PlayerCharacter;
   combat: CombatState;
@@ -413,4 +537,14 @@ export interface GameState {
   llmErrorCount: number;
   lastLlmError?: string;
   serverEvents: ServerEvent[];
+  /** Faction standings — keyed by faction ID, value is -2000 to +2000 */
+  factionStandings: Record<string, number>;
+  /** Spell IDs the player has learned (their spellbook) */
+  spellBook: string[];
+  /** Spell IDs currently memorized in gem slots (up to 8) */
+  memorizedSpells: (string | null)[];
+  /** Active quests in progress */
+  activeQuests: ActiveQuest[];
+  /** Completed quest IDs */
+  completedQuests: string[];
 }

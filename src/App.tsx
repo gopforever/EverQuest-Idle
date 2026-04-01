@@ -8,6 +8,8 @@ import { InventoryPanel } from './components/panels/InventoryPanel';
 import { ZonesPanel } from './components/panels/ZonesPanel';
 import { SkillsPanel } from './components/panels/SkillsPanel';
 import { SpellsPanel } from './components/panels/SpellsPanel';
+import { QuestsPanel } from './components/panels/QuestsPanel';
+import { FactionsPanel } from './components/panels/FactionsPanel';
 import { WhoPanel } from './components/panels/WhoPanel';
 import { GuildPanel } from './components/panels/GuildPanel';
 import { AchievementsPanel } from './components/panels/AchievementsPanel';
@@ -31,6 +33,9 @@ function PanelContent({ activePanel }: { activePanel: PanelId }) {
     case 'achievements': return <AchievementsPanel />;
     case 'bazaar': return <BazaarPanel />;
     case 'tradeskill': return <TradeskillPanel />;
+    case 'quests':    return <QuestsPanel />;
+    case 'factions':  return <FactionsPanel />;
+    default: return null;
   }
 }
 

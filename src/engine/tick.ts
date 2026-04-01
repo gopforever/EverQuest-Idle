@@ -18,6 +18,8 @@ import { calcBaseXp, applyClassModifier } from './xp';
 import { calcDeathXpLoss, calcBindPointHp, calcBindPointMana, isCasterClass } from './death';
 import { MONSTERS } from '../data/monsters';
 import { ITEMS } from '../data/items';
+import { applyKillFactionChanges } from './factionEngine';
+import { recordKillForQuests, checkQuestAdvance } from './questEngine';
 
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -69,6 +71,9 @@ const groupGhostLastSwing = new Map<string, number>();
 export function processTick(state: GameState): Partial<GameState> {
   const newLog: CombatLogEntry[] = [];
   let { player, combat, tickCount, currentZone } = state;
+  let factionStandings = state.factionStandings ?? {};
+  let activeQuests     = state.activeQuests ?? [];
+  let completedQuests  = state.completedQuests ?? [];
 
   tickCount = tickCount + 1;
 
@@ -370,6 +375,20 @@ export function processTick(state: GameState): Partial<GameState> {
       tracking.continentsVisited = [...tracking.continentsVisited, currentZone.continent];
     }
 
+    // ── Faction changes on kill ──────────────────────────────────────────
+    factionStandings = applyKillFactionChanges(currentMonster.id, factionStandings);
+
+    // ── Quest progress on kill ───────────────────────────────────────────
+    activeQuests = recordKillForQuests(currentMonster.id, activeQuests);
+    const questResult = checkQuestAdvance(activeQuests, completedQuests);
+    if (questResult.newlyCompleted.length > 0) {
+      for (const qId of questResult.newlyCompleted) {
+        newLog.push(makeLogEntry(`Quest Complete: ${qId}!`, 'system'));
+      }
+      activeQuests   = questResult.activeQuests;
+      completedQuests = questResult.completedQuests;
+    }
+
     player = {
       ...player,
       xp: newXp,
@@ -564,5 +583,8 @@ export function processTick(state: GameState): Partial<GameState> {
     tickCount,
     combatLog: updatedLog,
     ghosts: updatedGhosts,
+    factionStandings,
+    activeQuests,
+    completedQuests,
   };
 }

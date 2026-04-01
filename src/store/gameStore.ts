@@ -34,6 +34,9 @@ import {
 } from '../engine/characterCreation';
 import { generateGhostName } from '../utils/ghostNames';
 import { runLlmAgentQueue, applyLlmResultsToGhosts } from '../engine/llmAgent';
+import { getStartingFactionStandings } from '../data/factions';
+import { getSpellsForClass, autoMemorizeSpells } from '../data/spells';
+import { startQuest, abandonQuest } from '../engine/questEngine';
 
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -166,6 +169,14 @@ interface GameStore extends GameState {
   disbandGroup: () => void;
   // LLM agent actions
   runLlmAgentsAsync: () => void;
+  // Spell actions
+  memorizeSpell: (spellId: string, gemIndex: number) => void;
+  forgetSpell: (gemIndex: number) => void;
+  learnSpell: (spellId: string) => void;
+  autoMemorize: () => void;
+  // Quest actions
+  beginQuest: (questId: string) => void;
+  dropQuest: (questId: string) => void;
 }
 
 const initialGhosts = Array.from({ length: 100 }, (_, i) => makeGhost(i));
@@ -201,6 +212,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
   llmErrorCount: 0,
   lastLlmError: undefined,
   serverEvents: [],
+  factionStandings: {},
+  spellBook: [],
+  memorizedSpells: [null, null, null, null, null, null, null, null],
+  activeQuests: [],
+  completedQuests: [],
 
   startGame: () => set({ gameStarted: true }),
 
@@ -210,6 +226,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const gear = buildStartingGear(race, cls);
     const startingZoneId = getStartingZone(race);
     const startingZone = ZONES[startingZoneId] ?? ZONES['qeynos_hills'];
+    const factionStandings = getStartingFactionStandings(race, cls);
+    const startingSpells = getSpellsForClass(cls, 1).map((s) => s.id);
+    const memorizedSpells = autoMemorizeSpells(cls, 1, startingSpells);
     set({
       characterCreated: true,
       gameStarted: false,
@@ -231,6 +250,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
       },
       currentZone: startingZone,
       combat: initialCombat,
+      factionStandings,
+      spellBook: startingSpells,
+      memorizedSpells,
+      activeQuests: [],
+      completedQuests: [],
       combatLog: [{
         id: generateId(),
         timestamp: Date.now(),
@@ -319,6 +343,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
       llmErrorCount: state.llmErrorCount,
       lastLlmError: state.lastLlmError,
       serverEvents: state.serverEvents ?? [],
+      factionStandings: playerUpdates.factionStandings ?? state.factionStandings ?? {},
+      spellBook: state.spellBook ?? [],
+      memorizedSpells: state.memorizedSpells ?? [null, null, null, null, null, null, null, null],
+      activeQuests: playerUpdates.activeQuests ?? state.activeQuests ?? [],
+      completedQuests: playerUpdates.completedQuests ?? state.completedQuests ?? [],
     };
     const ghostUpdates = processGhostTick(stateAfterPlayer, stateAfterPlayer.tickCount);
 
@@ -720,5 +749,46 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }).catch((err: unknown) => {
       console.error('[LLM queue error]', err);
     });
+  },
+
+  // ── Spell actions ────────────────────────────────────────────────
+
+  memorizeSpell: (spellId: string, gemIndex: number) => {
+    const { memorizedSpells } = get();
+    if (gemIndex < 0 || gemIndex > 7) return;
+    const updated = [...memorizedSpells] as (string | null)[];
+    updated[gemIndex] = spellId;
+    set({ memorizedSpells: updated });
+  },
+
+  forgetSpell: (gemIndex: number) => {
+    const { memorizedSpells } = get();
+    const updated = [...memorizedSpells] as (string | null)[];
+    updated[gemIndex] = null;
+    set({ memorizedSpells: updated });
+  },
+
+  learnSpell: (spellId: string) => {
+    const { spellBook } = get();
+    if (spellBook.includes(spellId)) return;
+    set({ spellBook: [...spellBook, spellId] });
+  },
+
+  autoMemorize: () => {
+    const { player, spellBook } = get();
+    const gems = autoMemorizeSpells(player.class, player.level, spellBook);
+    set({ memorizedSpells: gems });
+  },
+
+  // ── Quest actions ────────────────────────────────────────────────
+
+  beginQuest: (questId: string) => {
+    const { activeQuests, tickCount } = get();
+    set({ activeQuests: startQuest(questId, activeQuests, tickCount) });
+  },
+
+  dropQuest: (questId: string) => {
+    const { activeQuests } = get();
+    set({ activeQuests: abandonQuest(questId, activeQuests) });
   },
 }));

@@ -17,6 +17,14 @@ Players choose a classic EQ class and race, then progress through zones by fight
 - **Optional Backend:** Supabase (cloud saves/syncing)
 - **Package Manager:** npm
 
+## Phase 9 — Vanilla EQ Content (Complete)
+
+- **Data:** `spells.ts` (8 caster/priest classes L1–60), `factions.ts` (20+ factions + vendor pricing), `quests.ts` (8 quests), named boss drops in `items.ts`, `monsters.ts` (Pyzjn, Kirak Vil, Lady Vox, Lord Nagafen with real P99 loot)
+- **Engines:** `factionEngine.ts` (kill→faction delta, cascade, KOS, vendor pricing), `questEngine.ts` (kill recording, step advancement, quest start/abandon/available)
+- **Store:** `gameStore.ts` — new state fields `factionStandings`, `spellBook`, `memorizedSpells`, `activeQuests`, `completedQuests`; new actions: `memorizeSpell`, `forgetSpell`, `learnSpell`, `autoMemorize`, `beginQuest`, `dropQuest`; `createCharacter` seeds starting factions and spell book
+- **Tick:** `tick.ts` — calls `applyKillFactionChanges` and `recordKillForQuests`/`checkQuestAdvance` on every kill; returns updated faction/quest state
+- **UI:** `SpellsPanel.tsx` (full spell book with 8 gem slots, memorize/forget, auto-mem, search), `QuestsPanel.tsx` (active/available/completed tabs, progress bars, abandon), `FactionsPanel.tsx` (sorted standings with color bars + legend), QUESTS + FACTIONS buttons in `LeftPanel.tsx`
+
 ## Project Structure
 
 - `src/components/` — UI layer (layout, panels, reusable UI)
