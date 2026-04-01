@@ -20,6 +20,7 @@ import { MONSTERS } from '../data/monsters';
 import { ITEMS } from '../data/items';
 import { applyKillFactionChanges } from './factionEngine';
 import { recordKillForQuests, checkQuestAdvance } from './questEngine';
+import { getSpellsForClass } from '../data/spells';
 
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -76,6 +77,7 @@ export function processTick(state: GameState): Partial<GameState> {
   let completedQuests  = state.completedQuests ?? [];
 
   tickCount = tickCount + 1;
+  let spellBook: string[] = [...(state.spellBook ?? [])];
 
   // ── Regen when not in combat ─────────────────────────────────────────────
   if (!combat.autoAttacking) {
@@ -334,11 +336,19 @@ export function processTick(state: GameState): Partial<GameState> {
     let newLevel = player.level;
     let newXpToNext = player.xpToNextLevel;
 
-    if (newXp >= newXpToNext && newLevel < 60) {
+    while (newXp >= newXpToNext && newLevel < 60) {
       newXp -= newXpToNext;
       newLevel++;
       newXpToNext = calcXpToNextLevel(newLevel);
       newLog.push(makeLogEntry(`You have reached level ${newLevel}!`, 'system'));
+
+      // ── Learn new spells available at this level ─────────────────────
+      const newSpells = getSpellsForClass(player.class, newLevel)
+        .filter((s) => s.level === newLevel && !spellBook.includes(s.id));
+      for (const spell of newSpells) {
+        spellBook = [...spellBook, spell.id];
+        newLog.push(makeLogEntry(`You have learned: ${spell.name}!`, 'system'));
+      }
     }
 
     // ── Kill tracking ────────────────────────────────────────────────────
@@ -586,5 +596,6 @@ export function processTick(state: GameState): Partial<GameState> {
     factionStandings,
     activeQuests,
     completedQuests,
+    spellBook,
   };
 }

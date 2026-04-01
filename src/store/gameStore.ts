@@ -324,6 +324,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       message: `You enter ${zone.name}.`,
       type: 'system',
     });
+    // Save on zone change — progress milestone
+    get().saveGame();
   },
 
   tick: () => {
@@ -347,7 +349,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       lastLlmError: state.lastLlmError,
       serverEvents: state.serverEvents ?? [],
       factionStandings: playerUpdates.factionStandings ?? state.factionStandings ?? {},
-      spellBook: state.spellBook ?? [],
+      spellBook: playerUpdates.spellBook ?? state.spellBook ?? [],
       memorizedSpells: state.memorizedSpells ?? [null, null, null, null, null, null, null, null],
       activeQuests: playerUpdates.activeQuests ?? state.activeQuests ?? [],
       completedQuests: playerUpdates.completedQuests ?? state.completedQuests ?? [],
@@ -370,6 +372,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
 
     set({ ...playerUpdates, ...ghostUpdates, ...bazaarUpdate } as Partial<GameStore>);
+
+    // Auto-save every 30 ticks (~30 seconds)
+    if (newTickCount % 30 === 0) {
+      get().saveGame();
+    }
 
     // Fire LLM agent queue every 50 ticks (non-blocking)
     if (newTickCount % 50 === 0) {
@@ -457,14 +464,32 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   saveGame: () => {
-    const { player, combat, currentZone, tickCount, ghosts, characterCreated } = get();
-    void saveGameState({ player, combat, currentZone, tickCount, ghosts, characterCreated });
+    const {
+      player, combat, currentZone, tickCount, ghosts, characterCreated,
+      factionStandings, spellBook, memorizedSpells, activeQuests, completedQuests,
+    } = get();
+    const saveCombat = { ...combat, autoAttacking: false, isActive: false };
+    void saveGameState({
+      player, combat: saveCombat, currentZone, tickCount, ghosts, characterCreated,
+      factionStandings, spellBook, memorizedSpells, activeQuests, completedQuests,
+    });
   },
 
   loadGame: () => {
     void loadGameState().then(async (saved) => {
       if (saved) {
-        set((state) => ({ ...state, ...saved }));
+        // Always load with combat inactive so player isn't mid-fight on reload
+        const safeSaved = {
+          ...saved,
+          combat: {
+            ...(saved.combat ?? initialCombat),
+            autoAttacking: false,
+            isActive: false,
+            currentMonster: null,
+            monsterCurrentHp: 0,
+          },
+        };
+        set((state) => ({ ...state, ...safeSaved }));
       }
       // Hydrate ghosts from Supabase (authoritative remote store)
       const remoteGhosts = await loadGhostsFromSupabase();
