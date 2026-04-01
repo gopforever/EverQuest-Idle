@@ -311,6 +311,7 @@ export interface GhostPlayer {
   plat: number;
   achievements: string[];
   deathCount: number;
+  totalKills: number;
   skills: Record<string, number>;
   recoveryTicksRemaining: number;
   mood?: 'normal' | 'tilted' | 'euphoric' | 'panicking' | 'bored';

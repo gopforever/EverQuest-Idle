@@ -128,7 +128,7 @@ export function RankingsPanel() {
       maxHp: g.stats.maxHp,
       ac: g.stats.ac,
       str: g.stats.str,
-      kills: 0,
+      kills: g.totalKills ?? 0,
       deaths: g.deathCount,
       xpPct: g.xpToNextLevel > 0 ? (g.xp / g.xpToNextLevel) * 100 : 0,
       isPlayer: false,
@@ -180,9 +180,20 @@ export function RankingsPanel() {
           <span style={{ color: 'var(--eq-gold)', fontWeight: 'bold', fontSize: '13px', letterSpacing: '0.1em' }}>
             WORLD RANKINGS
           </span>
-          <span style={{ color: 'var(--eq-text-dim)', fontSize: '10px' }}>
-            {onlineCount} adventurers online
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ color: 'var(--eq-text-dim)', fontSize: '10px' }}>
+              {onlineCount} online
+            </span>
+            <a
+              href="/rankings.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: 'var(--eq-gold)', fontSize: '9px', letterSpacing: '0.05em', textDecoration: 'none', border: '1px solid var(--eq-gold-dim)', padding: '1px 6px', cursor: 'pointer' }}
+              title="Open full rankings website"
+            >
+              ↗ FULL SITE
+            </a>
+          </div>
         </div>
         <div style={{ color: 'var(--eq-text-dim)', fontSize: '9px', marginTop: '1px', letterSpacing: '0.05em' }}>
           ANTONICA · FAYDWER · KUNARK · VELIOUS

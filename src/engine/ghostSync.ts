@@ -49,6 +49,7 @@ function fromRow(row: Record<string, unknown>): GhostPlayer {
     currentActivity: row.current_activity as string,
     plat: row.plat as number,
     deathCount: row.death_count as number,
+    totalKills: (row.total_kills as number) ?? 0,
     recoveryTicksRemaining: row.recovery_ticks_remaining as number,
     mood: row.mood as GhostPlayer['mood'],
     memory: (row.memory as string[]) ?? [],

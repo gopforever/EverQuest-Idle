@@ -98,6 +98,7 @@ function makeGhost(index: number): GhostPlayer {
     plat: 0,
     achievements: [],
     deathCount: 0,
+    totalKills: 0,
     skills: { '1H Slashing': 5, Defense: 5, Offense: 5 },
     recoveryTicksRemaining: 0,
     allies: [],

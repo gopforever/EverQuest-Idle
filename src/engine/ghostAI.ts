@@ -794,6 +794,9 @@ export function processGhostTick(
       // Memory: record the kill
       g = addMemory(g, `Killed ${cs.monsterName} in ${zone.name} at level ${g.level}`);
 
+      // Increment kill counter
+      g = { ...g, totalKills: (g.totalKills ?? 0) + 1 };
+
       // Reputation: increment killPoints
       const repOnKill = g.reputation ?? { killPoints: 0, craftPoints: 0, raidPoints: 0, tradingPoints: 0 };
       g = { ...g, reputation: { ...repOnKill, killPoints: repOnKill.killPoints + 1 } };
