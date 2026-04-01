@@ -18,6 +18,7 @@ import { LlmSettingsPanel } from './components/panels/LlmSettingsPanel';
 import { useGameLoop } from './hooks/useGameLoop';
 import { useGameStore } from './store/gameStore';
 import CharacterCreationScreen from './components/CharacterCreationScreen';
+import { ItemExamineModal } from './components/ui/ItemExamineModal';
 
 type PanelId =
   | 'inventory' | 'skills' | 'spells' | 'zones' | 'tradeskill'
@@ -167,6 +168,8 @@ export default function App() {
         gap: '4px',
       }}
     >
+      {/* Global examine modal — renders over everything */}
+      <ItemExamineModal />
       {/* ── Left bar: action buttons + spell gems ── */}
       <LeftBar onOpenPanel={openPanel} />
 

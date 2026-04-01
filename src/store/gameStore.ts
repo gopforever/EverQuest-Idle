@@ -177,6 +177,8 @@ interface GameStore extends GameState {
   // Quest actions
   beginQuest: (questId: string) => void;
   dropQuest: (questId: string) => void;
+  // Examine window
+  setExamineItem: (item: Item | null) => void;
 }
 
 const initialGhosts = Array.from({ length: 100 }, (_, i) => makeGhost(i));
@@ -217,6 +219,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   memorizedSpells: [null, null, null, null, null, null, null, null],
   activeQuests: [],
   completedQuests: [],
+  examineItem: null,
 
   startGame: () => set({ gameStarted: true }),
 
@@ -348,6 +351,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       memorizedSpells: state.memorizedSpells ?? [null, null, null, null, null, null, null, null],
       activeQuests: playerUpdates.activeQuests ?? state.activeQuests ?? [],
       completedQuests: playerUpdates.completedQuests ?? state.completedQuests ?? [],
+      examineItem: null,
     };
     const ghostUpdates = processGhostTick(stateAfterPlayer, stateAfterPlayer.tickCount);
 
@@ -817,5 +821,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
   dropQuest: (questId: string) => {
     const { activeQuests } = get();
     set({ activeQuests: abandonQuest(questId, activeQuests) });
+  },
+
+  setExamineItem: (item: Item | null) => {
+    set({ examineItem: item });
   },
 }));

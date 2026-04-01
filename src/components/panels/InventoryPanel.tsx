@@ -22,10 +22,11 @@ function getRarityColor(rarity?: string): string {
 }
 
 // ── Item detail card ─────────────────────────────────────────────────────────
-function ItemDetail({ item, onEquip, onDrop }: {
+function ItemDetail({ item, onEquip, onDrop, onExamine }: {
   item: Item;
   onEquip?: () => void;
   onDrop?: () => void;
+  onExamine?: () => void;
 }) {
   const stats = item.stats;
   const statRows: { key: string; label: string; val: number }[] = [
@@ -85,6 +86,11 @@ function ItemDetail({ item, onEquip, onDrop }: {
             DROP
           </button>
         )}
+        {onExamine && (
+          <button className="eq-btn" onClick={onExamine} style={{ padding: '3px 8px', fontSize: '9px', letterSpacing: '0.05em' }}>
+            EXAMINE
+          </button>
+        )}
       </div>
     </div>
   );
@@ -96,11 +102,13 @@ function GearSlotCell({
   item,
   selected,
   onClick,
+  onRightClick,
 }: {
   slot: EquipSlot | null;
   item?: Item;
   selected?: boolean;
   onClick?: () => void;
+  onRightClick?: () => void;
 }) {
   if (!slot) return <div style={{ width: '46px', height: '46px' }} />;
 
@@ -114,7 +122,8 @@ function GearSlotCell({
   return (
     <div
       onClick={onClick}
-      title={`${slot}${item ? ': ' + item.name : ' (empty)'}`}
+      onContextMenu={(e) => { if (item && onRightClick) { e.preventDefault(); onRightClick(); } }}
+      title={`${slot}${item ? ': ' + item.name : ' (empty)'}${item ? '\n[Right-click to examine]' : ''}`}
       style={{
         width: '46px',
         height: '46px',
@@ -164,16 +173,19 @@ function BagSlotCell({
   item,
   selected,
   onClick,
+  onRightClick,
 }: {
   item?: Item | null;
   selected?: boolean;
   onClick?: () => void;
+  onRightClick?: () => void;
 }) {
   const hasItem = Boolean(item);
   return (
     <div
       onClick={onClick}
-      title={item?.name ?? 'Empty'}
+      onContextMenu={(e) => { if (item && onRightClick) { e.preventDefault(); onRightClick(); } }}
+      title={item ? `${item.name}\n[Right-click to examine]` : 'Empty'}
       style={{
         width: '34px',
         height: '34px',
@@ -208,9 +220,10 @@ function BagSlotCell({
 
 // ── Main component ───────────────────────────────────────────────────────────
 export function InventoryPanel() {
-  const player        = useGameStore((s) => s.player);
-  const equipItem     = useGameStore((s) => s.equipItem);
-  const unequipItem   = useGameStore((s) => s.unequipItem);
+  const player          = useGameStore((s) => s.player);
+  const equipItem       = useGameStore((s) => s.equipItem);
+  const unequipItem     = useGameStore((s) => s.unequipItem);
+  const setExamineItem  = useGameStore((s) => s.setExamineItem);
 
   const [selectedBagIdx, setSelectedBagIdx]   = useState<number | null>(null);
   const [selectedGearSlot, setSelectedGearSlot] = useState<EquipSlot | null>(null);
@@ -373,6 +386,7 @@ export function InventoryPanel() {
                   item={player.gear[slot]}
                   selected={selectedGearSlot === slot}
                   onClick={() => handleGearSlotClick(slot)}
+                  onRightClick={player.gear[slot] ? () => setExamineItem(player.gear[slot]!) : undefined}
                 />
               ))}
             </div>
@@ -411,6 +425,7 @@ export function InventoryPanel() {
                   item={slot ? player.gear[slot] : undefined}
                   selected={selectedGearSlot === slot}
                   onClick={slot ? () => handleGearSlotClick(slot) : undefined}
+                  onRightClick={slot && player.gear[slot] ? () => setExamineItem(player.gear[slot]!) : undefined}
                 />
               ))}
             </div>
@@ -425,6 +440,7 @@ export function InventoryPanel() {
                 item={player.gear[slot]}
                 selected={selectedGearSlot === slot}
                 onClick={() => handleGearSlotClick(slot)}
+                onRightClick={player.gear[slot] ? () => setExamineItem(player.gear[slot]!) : undefined}
               />
             ))}
           </div>
@@ -479,6 +495,7 @@ export function InventoryPanel() {
               item={item}
               selected={selectedBagIdx === idx}
               onClick={() => handleBagItemClick(idx)}
+              onRightClick={item ? () => setExamineItem(item) : undefined}
             />
           ))}
         </div>
@@ -507,6 +524,7 @@ export function InventoryPanel() {
               ? () => { if (!bagFull) { unequipItem(selectedGearSlot!); setSelectedGearSlot(null); } }
               : undefined
           }
+          onExamine={() => setExamineItem(selectedItem)}
         />
       )}
     </div>

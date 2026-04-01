@@ -547,4 +547,6 @@ export interface GameState {
   activeQuests: ActiveQuest[];
   /** Completed quest IDs */
   completedQuests: string[];
+  /** Item currently being examined in the popup window */
+  examineItem: Item | null;
 }
