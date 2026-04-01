@@ -57,7 +57,7 @@ const distDir = join(__dirname, 'dist');
 if (existsSync(distDir)) {
   app.use(express.static(distDir));
   // SPA fallback — all non-API routes return index.html
-  app.get('*', (_req, res) => {
+  app.get(/.*/, (_req, res) => {
     res.sendFile(join(distDir, 'index.html'));
   });
   console.log('[server] serving built frontend from /dist');

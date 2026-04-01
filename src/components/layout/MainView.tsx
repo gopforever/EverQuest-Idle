@@ -34,12 +34,10 @@ export function MainView() {
   const [spriteError, setSpriteError] = useState(false);
 
   const bgSrc      = `/assets/backgrounds/${currentZone.id}.jpg`;
-  const spriteSrc  = combat.currentMonster
+  const monsterId  = combat.currentMonster?.id ?? '';
+  const spriteSrc  = combat.isActive && combat.currentMonster
     ? `/assets/sprites/monsters/${combat.currentMonster.id}.png`
     : null;
-
-  // Reset sprite error state when the monster changes
-  const monsterId = combat.currentMonster?.id ?? '';
 
   return (
     <div
