@@ -1,6 +1,6 @@
 /**
  * itemsExpanded.ts
- * ~200 authentic classic EverQuest items, organized by zone/tier.
+ * ~280 authentic classic EverQuest items, organized by zone/tier.
  * Merged into ITEMS in items.ts via spread.
  */
 import type { Item, CharacterClass } from '../types';
