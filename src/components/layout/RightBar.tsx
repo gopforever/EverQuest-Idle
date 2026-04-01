@@ -76,11 +76,18 @@ const PANEL_BUTTONS: { id: string; label: string }[] = [
 export function RightBar({ onOpenPanel, activePanel }: RightBarProps) {
   const player   = useGameStore((s) => s.player);
   const ghosts   = useGameStore((s) => s.ghosts);
+  const group    = useGameStore((s) => s.group);
   const combat   = useGameStore((s) => s.combat);
   const toggleAutoCombat = useGameStore((s) => s.toggleAutoCombat);
 
   const [selectedGhost, setSelectedGhost] = useState<GhostPlayer | null>(null);
-  const onlineGhosts = ghosts.filter((g) => g.isOnline).slice(0, 5);
+
+  // Only show actual group members, not all online ghosts
+  const groupMembers = group.members
+    .map((id) => ghosts.find((g) => g.id === id))
+    .filter((g): g is GhostPlayer => Boolean(g));
+
+  const MAX_GROUP_SIZE = 5;
 
   const btnStyle = (isActive?: boolean): React.CSSProperties => ({
     background: isActive
@@ -157,7 +164,7 @@ export function RightBar({ onOpenPanel, activePanel }: RightBarProps) {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', paddingBottom: '2px' }}>
-        {onlineGhosts.map((ghost) => (
+        {groupMembers.map((ghost) => (
           <div key={ghost.id} style={{ cursor: 'pointer' }} onClick={() => setSelectedGhost(ghost)}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px', marginBottom: '1px' }}>
               <span style={{ color: 'var(--eq-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '80px' }}>
@@ -168,8 +175,8 @@ export function RightBar({ onOpenPanel, activePanel }: RightBarProps) {
             <HpBar current={ghost.stats.hp} max={ghost.stats.maxHp} colorClass="hp" height={6} />
           </div>
         ))}
-        {Array.from({ length: Math.max(0, 5 - onlineGhosts.length) }).map((_, i) => (
-          <div key={`empty-${i}`} style={{ fontSize: '8px', color: '#1a1410' }}>— empty —</div>
+        {Array.from({ length: Math.max(0, MAX_GROUP_SIZE - groupMembers.length) }).map((_, i) => (
+          <div key={`empty-${i}`} style={{ fontSize: '8px', color: '#1a1410', padding: '1px 0' }}>— open —</div>
         ))}
       </div>
 
