@@ -388,19 +388,46 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   equipItem: (item: Item, slot: EquipSlot) => {
-    set((state) => ({
-      player: {
-        ...state.player,
-        gear: { ...state.player.gear, [slot]: item },
-      },
-    }));
+    set((state) => {
+      const player = state.player;
+      const inventory = [...player.inventory] as (Item | null)[];
+      const gear = { ...player.gear };
+
+      // Remove the item being equipped from inventory (find by id)
+      const invIdx = inventory.findIndex((i) => i?.id === item.id);
+      if (invIdx !== -1) inventory[invIdx] = null;
+
+      // If a different item is already in this slot, move it back to inventory
+      const displaced = gear[slot];
+      if (displaced && displaced.id !== item.id) {
+        // Put displaced item in the same inventory slot the new item came from,
+        // otherwise find the next empty slot
+        const targetSlot = invIdx !== -1 ? invIdx : inventory.findIndex((s) => s === null);
+        if (targetSlot !== -1) inventory[targetSlot] = displaced;
+      }
+
+      gear[slot] = item;
+      return { player: { ...player, inventory, gear } };
+    });
   },
 
   unequipItem: (slot: EquipSlot) => {
     set((state) => {
-      const gear = { ...state.player.gear };
+      const player = state.player;
+      const item = player.gear[slot];
+      if (!item) return {};
+
+      const inventory = [...player.inventory] as (Item | null)[];
+      const emptyIdx = inventory.findIndex((s) => s === null);
+      if (emptyIdx === -1) {
+        // Inventory is full — silently refuse
+        return {};
+      }
+      inventory[emptyIdx] = item;
+
+      const gear = { ...player.gear };
       delete gear[slot];
-      return { player: { ...state.player, gear } };
+      return { player: { ...player, inventory, gear } };
     });
   },
 
