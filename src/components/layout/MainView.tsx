@@ -128,14 +128,14 @@ export function MainView() {
             onError={() => setSpriteError(true)}
             style={{
               position: 'absolute',
-              right: '14%',
+              right: '8%',
               bottom: 0,
-              height: '80%',
-              maxHeight: '160px',
+              height: '90%',
+              maxHeight: '280px',
               width: 'auto',
               objectFit: 'contain',
               imageRendering: 'pixelated',
-              filter: 'drop-shadow(0 0 6px rgba(0,0,0,0.9))',
+              filter: 'drop-shadow(0 0 10px rgba(0,0,0,1))',
               opacity: monsterHpPct < 20 ? 0.5 : 1,
               transition: 'opacity 0.4s',
             }}
