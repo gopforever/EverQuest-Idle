@@ -549,4 +549,6 @@ export interface GameState {
   completedQuests: string[];
   /** Item currently being examined in the popup window */
   examineItem: Item | null;
+  /** Whether the player is currently sitting (faster regen, cannot attack) */
+  isSitting: boolean;
 }

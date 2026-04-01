@@ -58,19 +58,20 @@ function GhostDetailModal({ ghost, onClose }: { ghost: GhostPlayer; onClose: () 
   );
 }
 
-const PANEL_BUTTONS: { id: string; label: string }[] = [
-  { id: 'inventory',    label: 'INVENTORY'  },
-  { id: 'skills',       label: 'SKILLS'     },
-  { id: 'spells',       label: 'SPELLS'     },
-  { id: 'quests',       label: 'QUESTS'     },
-  { id: 'factions',     label: 'FACTIONS'   },
-  { id: 'zones',        label: 'ZONES'      },
-  { id: 'tradeskill',   label: 'TRADESKILL' },
-  { id: 'bazaar',       label: 'BAZAAR'     },
-  { id: 'guild',        label: 'GUILD'      },
-  { id: 'achievements', label: 'ACHIEVE'    },
-  { id: 'who',          label: 'WHO'        },
-  { id: 'agents',       label: '✦ AGENTS'  },
+const PANEL_BUTTONS: { id: string; label: string; title?: string }[] = [
+  { id: 'inventory',    label: 'INVENTORY',  title: 'View equipment and bag items' },
+  { id: 'skills',       label: 'SKILLS',     title: 'View combat and trade skills' },
+  { id: 'spells',       label: 'SPELLS',     title: 'Spellbook and gem slots' },
+  { id: 'quests',       label: 'QUESTS',     title: 'Active and available quests' },
+  { id: 'factions',     label: 'FACTIONS',   title: 'Faction standings by city' },
+  { id: 'zones',        label: 'ZONES',      title: 'Zone browser and travel' },
+  { id: 'tradeskill',   label: 'TRADESKILL', title: 'Crafting and combines' },
+  { id: 'bazaar',       label: 'BAZAAR',     title: 'Player marketplace' },
+  { id: 'guild',        label: 'GUILD',      title: 'Guild management' },
+  { id: 'achievements', label: 'ACHIEVE',    title: 'Achievement tracker' },
+  { id: 'rankings',     label: 'RANKINGS',   title: 'World leaderboards' },
+  { id: 'who',          label: 'WHO',        title: 'See who is online' },
+  { id: 'agents',       label: '✦ AGENTS',  title: 'AI ghost settings' },
 ];
 
 export function RightBar({ onOpenPanel, activePanel }: RightBarProps) {
@@ -78,55 +79,62 @@ export function RightBar({ onOpenPanel, activePanel }: RightBarProps) {
   const ghosts   = useGameStore((s) => s.ghosts);
   const group    = useGameStore((s) => s.group);
   const combat   = useGameStore((s) => s.combat);
+  const isSitting = useGameStore((s) => s.isSitting);
   const toggleAutoCombat = useGameStore((s) => s.toggleAutoCombat);
+  const toggleSit        = useGameStore((s) => s.toggleSit);
+  const campOut          = useGameStore((s) => s.campOut);
+  const inviteGhost      = useGameStore((s) => s.inviteGhost);
+  const disbandGroup     = useGameStore((s) => s.disbandGroup);
 
   const [selectedGhost, setSelectedGhost] = useState<GhostPlayer | null>(null);
 
-  // Only show actual group members, not all online ghosts
   const groupMembers = group.members
     .map((id) => ghosts.find((g) => g.id === id))
     .filter((g): g is GhostPlayer => Boolean(g));
 
   const MAX_GROUP_SIZE = 5;
 
-  const btnStyle = (isActive?: boolean): React.CSSProperties => ({
+  const canInvite = group.members.length < MAX_GROUP_SIZE;
+  const canDisband = group.members.length > 0;
+
+  function handleInvite() {
+    const onlineNotInGroup = ghosts.find(
+      (g) => g.isOnline && !group.members.includes(g.id) && g.currentZone === player.currentZone
+    );
+    if (onlineNotInGroup) {
+      inviteGhost(onlineNotInGroup.id);
+    }
+  }
+
+  const btnStyle = (isActive?: boolean, isDisabled?: boolean): React.CSSProperties => ({
     background: isActive
       ? 'linear-gradient(to bottom, #2a2010 0%, #1a1508 100%)'
       : 'linear-gradient(to bottom, #251e12 0%, #120f05 100%)',
     border: '1px solid var(--eq-border)',
-    borderTopColor: isActive ? 'var(--eq-bevel-lo)' : 'var(--eq-bevel-hi)',
-    borderLeftColor: isActive ? 'var(--eq-bevel-lo)' : 'var(--eq-bevel-hi)',
+    borderTopColor:    isActive ? 'var(--eq-bevel-lo)' : 'var(--eq-bevel-hi)',
+    borderLeftColor:   isActive ? 'var(--eq-bevel-lo)' : 'var(--eq-bevel-hi)',
     borderBottomColor: isActive ? 'var(--eq-bevel-hi)' : 'var(--eq-bevel-lo)',
-    borderRightColor: isActive ? 'var(--eq-bevel-hi)' : 'var(--eq-bevel-lo)',
-    color: isActive ? '#f0e060' : 'var(--eq-text)',
-    fontSize: '9px',
-    letterSpacing: '0.05em',
-    padding: '3px 4px',
-    cursor: 'pointer',
-    textAlign: 'center' as const,
-    fontFamily: 'inherit',
-    textTransform: 'uppercase' as const,
-    whiteSpace: 'nowrap' as const,
+    borderRightColor:  isActive ? 'var(--eq-bevel-hi)' : 'var(--eq-bevel-lo)',
+    color: isActive ? '#f0e060' : isDisabled ? '#3a3020' : 'var(--eq-text)',
+    fontSize: '9px', letterSpacing: '0.05em', padding: '3px 4px',
+    cursor: isDisabled ? 'not-allowed' : 'pointer',
+    textAlign: 'center' as const, fontFamily: 'inherit',
+    textTransform: 'uppercase' as const, whiteSpace: 'nowrap' as const,
+    opacity: isDisabled ? 0.45 : 1,
   });
 
   return (
     <aside
       className="eq-window"
       style={{
-        width: '140px',
-        minWidth: '140px',
-        flexShrink: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '3px',
-        padding: '4px',
-        borderRadius: 0,
-        overflow: 'hidden',
+        width: '140px', minWidth: '140px', flexShrink: 0,
+        display: 'flex', flexDirection: 'column', gap: '3px',
+        padding: '4px', borderRadius: 0, overflow: 'hidden',
       }}
     >
       {selectedGhost && <GhostDetailModal ghost={selectedGhost} onClose={() => setSelectedGhost(null)} />}
 
-      {/* ── Character portrait / player ──────────────────────── */}
+      {/* ── Character portrait ───────────────────────────── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '2px 2px 4px' }}>
         <div style={{
           width: '28px', height: '28px', borderRadius: '50%',
@@ -153,14 +161,29 @@ export function RightBar({ onOpenPanel, activePanel }: RightBarProps) {
         <HpBar current={player.stats.mana} max={player.stats.maxMana} colorClass="mana" height={6} />
       )}
 
-      <button style={{ ...btnStyle(), width: '100%', opacity: 0.4, cursor: 'not-allowed' }}>EFFECTS</button>
+      {/* Effects — shows buff count placeholder */}
+      <button
+        style={btnStyle()}
+        onClick={() => onOpenPanel('factions')}
+        title="View active effects and faction standings"
+      >
+        EFFECTS
+      </button>
 
       <div className="eq-divider" />
 
-      {/* ── Party / Group ────────────────────────────────────── */}
+      {/* ── Party / Group ────────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px' }}>
-        <button style={btnStyle()}>PARTY</button>
-        <button style={btnStyle()}>MEMBERS</button>
+        <button
+          style={btnStyle()}
+          onClick={() => onOpenPanel('guild')}
+          title="Guild management"
+        >PARTY</button>
+        <button
+          style={btnStyle()}
+          onClick={() => onOpenPanel('who')}
+          title="See who is online"
+        >MEMBERS</button>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', paddingBottom: '2px' }}>
@@ -182,7 +205,7 @@ export function RightBar({ onOpenPanel, activePanel }: RightBarProps) {
 
       <div className="eq-divider" />
 
-      {/* ── Current Target ────────────────────────────────────── */}
+      {/* ── Current Target ───────────────────────────────── */}
       <div style={{
         padding: '2px 3px',
         background: combat.currentMonster ? '#1a0000' : 'transparent',
@@ -208,35 +231,66 @@ export function RightBar({ onOpenPanel, activePanel }: RightBarProps) {
 
       <div className="eq-divider" />
 
-      {/* ── Social/combat buttons ─────────────────────────────── */}
+      {/* ── Social/combat buttons ────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px' }}>
-        <button style={{ ...btnStyle(), opacity: 0.4, cursor: 'not-allowed' }}>ABILITIES</button>
+        <button
+          style={btnStyle()}
+          onClick={() => onOpenPanel('skills')}
+          title="View abilities and combat skills"
+        >ABILITIES</button>
         <button
           style={btnStyle(combat.autoAttacking)}
           onClick={toggleAutoCombat}
+          title={combat.autoAttacking ? 'Stop auto-combat' : 'Start auto-combat'}
         >
           {combat.autoAttacking ? 'STOP' : 'COMBAT'}
         </button>
-        <button style={{ ...btnStyle(), opacity: 0.4, cursor: 'not-allowed' }}>SOCIALS</button>
-        <button style={{ ...btnStyle(), opacity: 0.4, cursor: 'not-allowed' }}>INVITE</button>
-        <button style={{ ...btnStyle(), opacity: 0.4, cursor: 'not-allowed' }}>DISBAND</button>
-        <button style={{ ...btnStyle(), opacity: 0.4, cursor: 'not-allowed' }}>CAMP</button>
-        <button style={{ ...btnStyle(), opacity: 0.4, cursor: 'not-allowed' }}>SIT</button>
-        <button style={{ ...btnStyle(), opacity: 0.4, cursor: 'not-allowed' }}>WALK</button>
+        <button
+          style={btnStyle()}
+          onClick={() => onOpenPanel('who')}
+          title="See who is online — chat with ghosts"
+        >SOCIALS</button>
+        <button
+          style={btnStyle(false, !canInvite)}
+          onClick={canInvite ? handleInvite : undefined}
+          title={canInvite ? 'Invite nearest online ghost in your zone to group' : 'Group is full (5 members)'}
+        >INVITE</button>
+        <button
+          style={btnStyle(false, !canDisband)}
+          onClick={canDisband ? disbandGroup : undefined}
+          title={canDisband ? 'Disband your current group' : 'You have no group to disband'}
+        >DISBAND</button>
+        <button
+          style={btnStyle()}
+          onClick={campOut}
+          title="Camp out — stops combat and saves your progress"
+        >CAMP</button>
+        <button
+          style={btnStyle(isSitting)}
+          onClick={toggleSit}
+          title={isSitting ? 'You are sitting (4× regen) — click to stand' : 'Sit to rest — 4× HP/Mana regen, disables combat'}
+        >
+          {isSitting ? 'STAND' : 'SIT'}
+        </button>
+        <button
+          style={btnStyle(false, true)}
+          title="Walk mode — coming soon"
+        >WALK</button>
       </div>
 
       <div className="eq-divider" />
 
-      {/* ── Panel access ──────────────────────────────────────── */}
+      {/* ── Panel access ─────────────────────────────────── */}
       <div style={{ fontSize: '8px', color: 'var(--eq-text-dim)', textTransform: 'uppercase', letterSpacing: '0.1em', textAlign: 'center' }}>
         Windows
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px' }}>
-        {PANEL_BUTTONS.map(({ id, label }) => (
+        {PANEL_BUTTONS.map(({ id, label, title }) => (
           <button
             key={id}
             style={btnStyle(activePanel === id)}
             onClick={() => onOpenPanel(id)}
+            title={title}
           >
             {label}
           </button>

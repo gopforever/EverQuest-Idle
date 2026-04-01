@@ -1,7 +1,7 @@
 type PanelId =
   | 'inventory' | 'skills' | 'spells' | 'zones' | 'tradeskill'
   | 'bazaar' | 'guild' | 'achievements' | 'who' | 'agents'
-  | 'quests' | 'factions';
+  | 'quests' | 'factions' | 'rankings';
 
 interface LeftPanelProps {
   activePanel: PanelId;
@@ -20,6 +20,7 @@ const PANELS: { id: PanelId; label: string }[] = [
   { id: 'guild',        label: 'GUILD'      },
   { id: 'achievements', label: 'ACHIEVE'    },
   { id: 'who',          label: 'WHO'        },
+  { id: 'rankings',     label: 'RANKINGS'  },
   { id: 'agents',       label: '✦ AGENTS'  },
 ];
 

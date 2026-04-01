@@ -15,6 +15,7 @@ import { AchievementsPanel } from './components/panels/AchievementsPanel';
 import { BazaarPanel } from './components/panels/BazaarPanel';
 import { TradeskillPanel } from './components/panels/TradeskillPanel';
 import { LlmSettingsPanel } from './components/panels/LlmSettingsPanel';
+import { RankingsPanel } from './components/panels/RankingsPanel';
 import { useGameLoop } from './hooks/useGameLoop';
 import { useGameStore } from './store/gameStore';
 import CharacterCreationScreen from './components/CharacterCreationScreen';
@@ -23,7 +24,7 @@ import { ItemExamineModal } from './components/ui/ItemExamineModal';
 type PanelId =
   | 'inventory' | 'skills' | 'spells' | 'zones' | 'tradeskill'
   | 'bazaar' | 'guild' | 'achievements' | 'who' | 'agents'
-  | 'quests' | 'factions';
+  | 'quests' | 'factions' | 'rankings';
 
 const PANEL_TITLES: Record<PanelId, string> = {
   inventory:    'INVENTORY',
@@ -38,6 +39,7 @@ const PANEL_TITLES: Record<PanelId, string> = {
   agents:       'AI AGENTS',
   quests:       'QUESTS',
   factions:     'FACTIONS',
+  rankings:     'WORLD RANKINGS',
 };
 
 function PanelContent({ activePanel }: { activePanel: PanelId }) {
@@ -54,6 +56,7 @@ function PanelContent({ activePanel }: { activePanel: PanelId }) {
     case 'tradeskill':   return <TradeskillPanel />;
     case 'quests':       return <QuestsPanel />;
     case 'factions':     return <FactionsPanel />;
+    case 'rankings':     return <RankingsPanel />;
   }
 }
 

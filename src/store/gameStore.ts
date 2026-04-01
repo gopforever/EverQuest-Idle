@@ -179,6 +179,9 @@ interface GameStore extends GameState {
   dropQuest: (questId: string) => void;
   // Examine window
   setExamineItem: (item: Item | null) => void;
+  // Sit / camp
+  toggleSit: () => void;
+  campOut: () => void;
 }
 
 const initialGhosts = Array.from({ length: 100 }, (_, i) => makeGhost(i));
@@ -220,6 +223,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   activeQuests: [],
   completedQuests: [],
   examineItem: null,
+  isSitting: false,
 
   startGame: () => set({ gameStarted: true }),
 
@@ -354,6 +358,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       activeQuests: playerUpdates.activeQuests ?? state.activeQuests ?? [],
       completedQuests: playerUpdates.completedQuests ?? state.completedQuests ?? [],
       examineItem: null,
+      isSitting: state.isSitting,
     };
     const ghostUpdates = processGhostTick(stateAfterPlayer, stateAfterPlayer.tickCount);
 
@@ -850,5 +855,36 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   setExamineItem: (item: Item | null) => {
     set({ examineItem: item });
+  },
+
+  toggleSit: () => {
+    const { isSitting, combat } = get();
+    if (!isSitting && combat.autoAttacking) {
+      get().toggleAutoCombat();
+    }
+    const nowSitting = !isSitting;
+    const sitMsg = nowSitting
+      ? 'You sit down to rest.'
+      : 'You stand up.';
+    set((s) => ({
+      isSitting: nowSitting,
+      combatLog: [
+        ...s.combatLog,
+        { id: `sit-${Date.now()}`, timestamp: Date.now(), message: sitMsg, type: 'system' as const },
+      ].slice(-200),
+    }));
+  },
+
+  campOut: () => {
+    const { combat } = get();
+    if (combat.autoAttacking) get().toggleAutoCombat();
+    set((s) => ({
+      isSitting: false,
+      combatLog: [
+        ...s.combatLog,
+        { id: `camp-${Date.now()}`, timestamp: Date.now(), message: 'Camping... Your progress has been saved.', type: 'system' as const },
+      ].slice(-200),
+    }));
+    get().saveGame();
   },
 }));

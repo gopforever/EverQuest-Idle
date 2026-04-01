@@ -82,14 +82,16 @@ export function processTick(state: GameState): Partial<GameState> {
   let spellBook: string[] = [...(state.spellBook ?? [])];
 
   // ── Regen when not in combat ─────────────────────────────────────────────
+  // Sitting gives 4× regen (classic EQ: sit to med mana/HP faster)
   if (!combat.autoAttacking) {
-    const hpRegen = Math.max(1, Math.floor(player.stats.maxHp * 0.02));
-    const manaRegen = Math.max(1, Math.floor(player.stats.maxMana * 0.02));
+    const sitMult = state.isSitting ? 4 : 1;
+    const hpRegen   = Math.max(1, Math.floor(player.stats.maxHp   * 0.02 * sitMult));
+    const manaRegen = Math.max(1, Math.floor(player.stats.maxMana * 0.02 * sitMult));
     player = {
       ...player,
       stats: {
         ...player.stats,
-        hp: Math.min(player.stats.maxHp, player.stats.hp + hpRegen),
+        hp:   Math.min(player.stats.maxHp,   player.stats.hp   + hpRegen),
         mana: Math.min(player.stats.maxMana, player.stats.mana + manaRegen),
       },
     };
