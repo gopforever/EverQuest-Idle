@@ -1170,8 +1170,8 @@ export const ITEMS_EXPANDED: Record<string, Item> = {
   },
   oasis_croc_hide_boots: {
     id: 'oasis_croc_hide_boots', name: 'Oasis Croc-Hide Boots',
-    slot: 'feet', type: 'armor', rarity: 'uncommon',
-    stats: { ac: 7, str: 2, sta: 1 }, weight: 2.5, classes: ['WAR', 'MNK', 'ROG', 'SHD', 'BRD'], races: 'ALL',
+    slot: 'Feet', type: 'armor', rarity: 'uncommon',
+    stats: { ac: 7, str: 2, sta: 1 }, weight: 2.5, classes: ['Warrior', 'Monk', 'Rogue', 'ShadowKnight', 'Bard'], races: 'ALL',
     lore: false, noDrop: false, stackable: false, stackSize: 1, value: 120,
     source: 'drop', sprite: SP, description: 'Boots crafted from Oasis crocodile hide. Surprisingly supple.',
   },
