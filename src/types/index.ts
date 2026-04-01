@@ -149,7 +149,7 @@ export interface Item {
   stackable: boolean;
   stackSize?: number;
   value: number;
-  source: 'drop' | 'tradeskill' | 'vendor' | 'quest';
+  source: 'monster' | 'drop' | 'tradeskill' | 'vendor' | 'quest';
   sprite: string;
   recLevel?: number;
   reqLevel?: number;
