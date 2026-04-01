@@ -73,11 +73,34 @@ npm run build    # TypeScript compile + Vite build → dist/
 npm run preview  # Preview production build
 ```
 
+## Supabase Item Database (Phase 11 — PEQ Integration)
+
+Full EverQuest item/monster database stored in Supabase for zone-based queries.
+
+### Setup (one time)
+1. Open your Supabase project → SQL Editor → run `supabase/schema.sql`
+2. In Supabase Auth, the tables use public read-only RLS (no service role needed for reads)
+3. Seed with current static data: `npm run db:seed`
+4. For full PEQ database (6,000+ items):
+   - Download `peqdb_latest.sql` from https://github.com/ProjectEQ/projecteqdb
+   - `SUPABASE_SERVICE_ROLE_KEY=<key> npx tsx scripts/import-peq.ts --peq peqdb_latest.sql`
+
+### Tables
+- **`eq_items`** — all items with full stats, class/race restrictions, slot info
+- **`eq_monsters`** — NPCs with zone arrays, level ranges, damage
+- **`eq_loot_entries`** — monster → item drop chance mappings
+- **`eq_zone_items`** — pre-computed zone → item index for fast lookups
+
+### Game Integration
+- **`src/engine/itemsDb.ts`** — `fetchZoneItems(zoneId)`, `fetchZoneMonsters(zoneId)`, `fetchItem(id)`
+- Automatically falls back to static `ITEMS`/`MONSTERS` if Supabase is unreachable
+- Results are cached in memory per session (no duplicate queries per zone)
+
 ## Secrets (Replit Secrets — never in .env.local)
 
 - `VITE_AI_GATEWAY_KEY` — Vercel AI Gateway client key (ghost chat AI)
-- `VITE_SUPABASE_URL` — Supabase project URL (cloud saves)
-- `VITE_SUPABASE_ANON_KEY` — Supabase anonymous key (cloud saves)
+- `VITE_SUPABASE_URL` — Supabase project URL (cloud saves + item DB)
+- `VITE_SUPABASE_ANON_KEY` — Supabase anonymous key (cloud saves + item DB reads)
 
 ## Deployment
 
