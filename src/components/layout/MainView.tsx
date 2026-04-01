@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { HpBar } from '../ui/HpBar';
 import { calcWeaponSwingInterval } from '../../engine/combat';
@@ -24,6 +25,21 @@ export function MainView() {
   const monsterHpPct = combat.currentMonster
     ? Math.max(0, Math.min(100, combat.monsterCurrentHp / combat.currentMonster.hp * 100))
     : 0;
+
+  // Track whether the zone background image loads successfully
+  const [bgLoaded, setBgLoaded] = useState(false);
+  const [bgError,  setBgError]  = useState(false);
+
+  // Track whether the monster sprite loads successfully
+  const [spriteError, setSpriteError] = useState(false);
+
+  const bgSrc      = `/assets/backgrounds/${currentZone.id}.jpg`;
+  const spriteSrc  = combat.currentMonster
+    ? `/assets/sprites/monsters/${combat.currentMonster.id}.png`
+    : null;
+
+  // Reset sprite error state when the monster changes
+  const monsterId = combat.currentMonster?.id ?? '';
 
   return (
     <div
@@ -55,54 +71,133 @@ export function MainView() {
       <div
         style={{
           flex: 1,
+          position: 'relative',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: 'var(--eq-bg)',
           borderBottom: '1px solid var(--eq-bevel-lo)',
-          padding: '8px',
-          textAlign: 'center',
-          gap: '4px',
-          minHeight: 0,
           overflow: 'hidden',
+          minHeight: 0,
         }}
       >
-        <div style={{ fontSize: '32px', opacity: 0.4, lineHeight: 1, color: 'var(--eq-text-dim)' }}>
-          {ZONE_ICONS[currentZone.type] ?? '♦'}
-        </div>
-        <div style={{
-          fontSize: '13px',
-          fontWeight: 'bold',
-          letterSpacing: '0.14em',
-          textTransform: 'uppercase',
-          color: 'var(--eq-gold)',
-          textShadow: '0 0 10px rgba(180,120,0,0.35)',
-        }}>
-          {currentZone.name}
-        </div>
-        {currentZone.description && (
-          <div style={{
-            fontSize: '10px',
-            color: 'var(--eq-text-dim)',
-            maxWidth: '400px',
-            lineHeight: 1.5,
-            fontStyle: 'italic',
-          }}>
-            {currentZone.description}
-          </div>
+        {/* Zone background image — hidden img for load detection */}
+        <img
+          key={currentZone.id}
+          src={bgSrc}
+          alt=""
+          onLoad={() => { setBgLoaded(true); setBgError(false); }}
+          onError={() => { setBgError(true); setBgLoaded(false); }}
+          style={{ display: 'none' }}
+        />
+
+        {/* Background fill — image if loaded, else solid */}
+        {bgLoaded && !bgError && (
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              backgroundImage: `url(${bgSrc})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              opacity: 0.55,
+              filter: 'saturate(0.75) brightness(0.6)',
+            }}
+          />
         )}
 
-        {/* ── Player name display (like EQ's overhead name) ── */}
-        <div style={{
-          fontSize: '11px',
-          color: 'var(--eq-gold)',
-          marginTop: '4px',
-          letterSpacing: '0.06em',
-          fontStyle: 'italic',
-          opacity: 0.7,
-        }}>
-          {player.name}
+        {/* Vignette overlay for readability */}
+        {bgLoaded && !bgError && (
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.7) 100%)',
+              pointerEvents: 'none',
+            }}
+          />
+        )}
+
+        {/* Monster sprite — shown in combat */}
+        {spriteSrc && !spriteError && (
+          <img
+            key={monsterId}
+            src={spriteSrc}
+            alt={combat.currentMonster?.name ?? ''}
+            onError={() => setSpriteError(true)}
+            style={{
+              position: 'absolute',
+              right: '14%',
+              bottom: 0,
+              height: '80%',
+              maxHeight: '160px',
+              width: 'auto',
+              objectFit: 'contain',
+              imageRendering: 'pixelated',
+              filter: 'drop-shadow(0 0 6px rgba(0,0,0,0.9))',
+              opacity: monsterHpPct < 20 ? 0.5 : 1,
+              transition: 'opacity 0.4s',
+            }}
+          />
+        )}
+
+        {/* Zone name / description overlay */}
+        <div
+          style={{
+            position: 'relative',
+            zIndex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '4px',
+            padding: '8px',
+            textAlign: 'center',
+            pointerEvents: 'none',
+          }}
+        >
+          {/* Show zone icon only when no background image */}
+          {(!bgLoaded || bgError) && (
+            <div style={{ fontSize: '32px', opacity: 0.4, lineHeight: 1, color: 'var(--eq-text-dim)' }}>
+              {ZONE_ICONS[currentZone.type] ?? '♦'}
+            </div>
+          )}
+
+          <div style={{
+            fontSize: '13px',
+            fontWeight: 'bold',
+            letterSpacing: '0.14em',
+            textTransform: 'uppercase',
+            color: 'var(--eq-gold)',
+            textShadow: '0 0 10px rgba(0,0,0,0.9), 0 0 20px rgba(180,120,0,0.5)',
+          }}>
+            {currentZone.name}
+          </div>
+
+          {currentZone.description && !combat.currentMonster && (
+            <div style={{
+              fontSize: '10px',
+              color: 'var(--eq-text-dim)',
+              maxWidth: '340px',
+              lineHeight: 1.5,
+              fontStyle: 'italic',
+              textShadow: '0 1px 3px rgba(0,0,0,0.9)',
+            }}>
+              {currentZone.description}
+            </div>
+          )}
+
+          <div style={{
+            fontSize: '11px',
+            color: 'var(--eq-gold)',
+            marginTop: '4px',
+            letterSpacing: '0.06em',
+            fontStyle: 'italic',
+            opacity: 0.7,
+            textShadow: '0 1px 3px rgba(0,0,0,0.9)',
+          }}>
+            {player.name}
+          </div>
         </div>
       </div>
 
