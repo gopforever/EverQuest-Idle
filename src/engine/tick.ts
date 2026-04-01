@@ -13,6 +13,8 @@ import {
   calcDodgeChance,
   calcDoubleAttackChance,
   getAggroWeight,
+  calcMaxHpForLevel,
+  calcMaxManaForLevel,
 } from './combat';
 import { calcBaseXp, applyClassModifier } from './xp';
 import { calcDeathXpLoss, calcBindPointHp, calcBindPointMana, isCasterClass } from './death';
@@ -148,25 +150,31 @@ export function processTick(state: GameState): Partial<GameState> {
   const canSwing = tickCount - combat.lastSwingTick >= swingInterval;
 
   const weaponDamage = player.gear['Primary']?.stats?.damage ?? 3;
-  const offenseSkill = player.skills['1H Slashing'] ?? player.level * 2;
+  // Pick the highest applicable weapon skill
+  const weaponSkill =
+    player.skills['2H Slashing'] ??
+    player.skills['1H Slashing'] ??
+    player.skills['Hand to Hand'] ??
+    player.level * 2;
+  const offenseSkill = player.skills['Offense'] ?? player.level * 2;
   // Use the stored monster level for a consistent fight (set at spawn time)
   const npcLevel = currentMonsterLevel;
-  const defenseSkill = npcLevel * 2;
-  const hitChance = calcHitChance(offenseSkill, defenseSkill);
+  const npcDefenseSkill = npcLevel * 2;
+  const hitChance = calcHitChance(offenseSkill, npcDefenseSkill);
 
   // ── Player attacks monster (gated by swing timer) ────────────────────────
   if (canSwing) {
     combat = { ...combat, lastSwingTick: tickCount };
 
     if (Math.random() < hitChance) {
-      const dmg = calcActualMeleeHit(weaponDamage, player.level, player.stats.str);
+      const dmg = calcActualMeleeHit(weaponDamage, player.stats.str, weaponSkill);
       monsterCurrentHp = monsterCurrentHp - dmg;
       newLog.push(
         makeLogEntry(`You hit ${currentMonster.name} for ${dmg} damage.`, 'hit')
       );
       // Double attack
       if (Math.random() < calcDoubleAttackChance(player.stats.dex, player.class as CharacterClass)) {
-        const dmg2 = calcActualMeleeHit(weaponDamage, player.level, player.stats.str);
+        const dmg2 = calcActualMeleeHit(weaponDamage, player.stats.str, weaponSkill);
         monsterCurrentHp = monsterCurrentHp - dmg2;
         newLog.push(makeLogEntry(`You double attack ${currentMonster.name} for ${dmg2} damage.`, 'hit'));
       }
@@ -188,16 +196,21 @@ export function processTick(state: GameState): Partial<GameState> {
 
       if (gCanSwing) {
         groupGhostLastSwing.set(g.id, tickCount);
-        const gOffense = g.skills['1H Slashing'] ?? g.level * 2;
-        const gHitChance = calcHitChance(gOffense, defenseSkill);
+        const gWeaponSkill =
+          g.skills['2H Slashing'] ??
+          g.skills['1H Slashing'] ??
+          g.skills['Hand to Hand'] ??
+          g.level * 2;
+        const gOffense = g.skills['Offense'] ?? g.level * 2;
+        const gHitChance = calcHitChance(gOffense, npcDefenseSkill);
 
         if (Math.random() < gHitChance) {
-          const gDmg = calcActualMeleeHit(gWeaponDmg, g.level, g.stats.str);
+          const gDmg = calcActualMeleeHit(gWeaponDmg, g.stats.str, gWeaponSkill);
           monsterCurrentHp -= gDmg;
           newLog.push(makeLogEntry(`${g.name} hits ${currentMonster.name} for ${gDmg} damage.`, 'hit'));
           // Double attack proc
           if (Math.random() < calcDoubleAttackChance(g.stats.dex, g.class)) {
-            const gDmg2 = calcActualMeleeHit(gWeaponDmg, g.level, g.stats.str);
+            const gDmg2 = calcActualMeleeHit(gWeaponDmg, g.stats.str, gWeaponSkill);
             monsterCurrentHp -= gDmg2;
             newLog.push(makeLogEntry(`${g.name} double attacks ${currentMonster.name} for ${gDmg2} damage.`, 'hit'));
           }
@@ -342,6 +355,38 @@ export function processTick(state: GameState): Partial<GameState> {
       newXpToNext = calcXpToNextLevel(newLevel);
       newLog.push(makeLogEntry(`You have reached level ${newLevel}!`, 'system'));
 
+      // ── Scale HP and Mana pools on level-up ──────────────────────────
+      // Preserve current HP/mana percentage so players don't go from 100% → tiny
+      const prevMaxHp   = player.stats.maxHp;
+      const prevMaxMana = player.stats.maxMana;
+      const hpPct   = prevMaxHp   > 0 ? player.stats.hp   / prevMaxHp   : 1;
+      const manaPct = prevMaxMana > 0 ? player.stats.mana / prevMaxMana : 1;
+
+      const newMaxHp   = calcMaxHpForLevel(newLevel, player.stats.sta, player.class as CharacterClass);
+      const newMaxMana = calcMaxManaForLevel(newLevel, player.stats.wis, player.stats.int, player.class as CharacterClass);
+
+      // Defense skill adds to base AC each level (1 point per level)
+      const newAC = player.stats.ac + 1;
+
+      player = {
+        ...player,
+        stats: {
+          ...player.stats,
+          maxHp:   newMaxHp,
+          hp:      Math.max(1, Math.floor(newMaxHp * hpPct)),
+          maxMana: newMaxMana,
+          mana:    Math.max(0, Math.floor(newMaxMana * manaPct)),
+          ac:      newAC,
+        },
+      };
+
+      newLog.push(
+        makeLogEntry(
+          `Your maximum HP is now ${newMaxHp}. Your maximum Mana is now ${newMaxMana}.`,
+          'system'
+        )
+      );
+
       // ── Learn new spells available at this level ─────────────────────
       const newSpells = getSpellsForClass(player.class, newLevel)
         .filter((s) => s.level === newLevel && !spellBook.includes(s.id));
@@ -463,7 +508,10 @@ export function processTick(state: GameState): Partial<GameState> {
         player = { ...player, skills: newSkillsOnDodge };
         newLog.push(makeLogEntry('You dodge!', 'miss'));
       } else {
-        const mitigated = calcMitigatedDamage(npcDmg, player.stats.ac, npcLevel);
+        // Defense skill adds to effective AC (classic EQ: defense skill ≈ bonus armor)
+        const playerDefenseSkill = player.skills['Defense'] ?? 0;
+        const effectiveAC = player.stats.ac + playerDefenseSkill;
+        const mitigated = calcMitigatedDamage(npcDmg, effectiveAC, npcLevel);
         const newHp = player.stats.hp - mitigated;
 
         newLog.push(

@@ -703,7 +703,12 @@ export function processGhostTick(
       ghostCombatMap.set(g.id, cs);
 
       if (Math.random() < hitChance) {
-        let dmg = calcActualMeleeHit(weaponDamage, g.level, g.stats.str);
+        const ghostWeaponSkill =
+          g.skills['2H Slashing'] ??
+          g.skills['1H Slashing'] ??
+          g.skills['Hand to Hand'] ??
+          g.level * 2;
+        let dmg = calcActualMeleeHit(weaponDamage, g.stats.str, ghostWeaponSkill);
         // Bard: reduced melee damage (50%)
         if (role === 'support') dmg = Math.max(1, Math.floor(dmg * 0.5));
         cs = { ...cs, monsterHp: cs.monsterHp - dmg };
@@ -712,7 +717,7 @@ export function processGhostTick(
         // Speedrunner: always double attack (never misses double)
         const doubleChance = g.personality === 'Speedrunner' ? 1.0 : calcDoubleAttackChance(g.stats.dex, g.class);
         if (Math.random() < doubleChance) {
-          let dmg2 = calcActualMeleeHit(weaponDamage, g.level, g.stats.str);
+          let dmg2 = calcActualMeleeHit(weaponDamage, g.stats.str, ghostWeaponSkill);
           if (role === 'support') dmg2 = Math.max(1, Math.floor(dmg2 * 0.5));
           cs = { ...cs, monsterHp: cs.monsterHp - dmg2 };
           ghostCombatMap.set(g.id, cs);
