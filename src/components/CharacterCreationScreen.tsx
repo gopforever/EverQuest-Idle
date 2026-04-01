@@ -41,56 +41,64 @@ const containerStyle = {
 const cardStyle = {
   width: '100%',
   maxWidth: '700px',
-  backgroundColor: 'var(--eq-panel)',
-  border: '2px solid var(--eq-border)',
-  padding: '24px',
   display: 'flex',
   flexDirection: 'column' as const,
-  gap: '16px',
+  gap: '0',
 };
 
 const sectionStyle = {
-  border: '1px solid var(--eq-border)',
-  padding: '10px 12px',
-  backgroundColor: '#0d0b08',
+  padding: '10px 14px',
+  borderBottom: '1px solid var(--eq-bevel-lo)',
 };
 
 const labelStyle = {
   color: 'var(--eq-gold)',
-  fontSize: '11px',
+  fontSize: '10px',
   textTransform: 'uppercase' as const,
-  letterSpacing: '0.08em',
+  letterSpacing: '0.12em',
   marginBottom: '8px',
   fontWeight: 'bold',
+  textShadow: '0 0 6px rgba(180,120,0,0.3)',
 };
 
-const btnBase = {
+const btnBase: React.CSSProperties = {
   padding: '4px 10px',
-  fontSize: '12px',
+  fontSize: '11px',
+  letterSpacing: '0.04em',
+  background: 'linear-gradient(to bottom, #251e12 0%, #120f05 100%)',
   border: '1px solid var(--eq-border)',
-  backgroundColor: '#1a1510',
+  borderTopColor: 'var(--eq-bevel-hi)',
+  borderLeftColor: 'var(--eq-bevel-hi)',
+  borderBottomColor: 'var(--eq-bevel-lo)',
+  borderRightColor: 'var(--eq-bevel-lo)',
   color: 'var(--eq-text)',
   cursor: 'pointer',
   fontFamily: 'inherit',
-  transition: 'background-color 0.15s, color 0.15s',
 };
 
-const btnActiveStyle = {
+const btnActiveStyle: React.CSSProperties = {
   ...btnBase,
-  backgroundColor: '#3a2a05',
-  color: 'var(--eq-gold)',
-  borderColor: 'var(--eq-gold)',
+  background: 'linear-gradient(to bottom, #2a2010 0%, #1a1508 100%)',
+  color: '#f0e060',
+  borderTopColor: 'var(--eq-bevel-lo)',
+  borderLeftColor: 'var(--eq-bevel-lo)',
+  borderBottomColor: 'var(--eq-bevel-hi)',
+  borderRightColor: 'var(--eq-bevel-hi)',
+  textShadow: '0 0 6px rgba(200,160,0,0.4)',
 };
 
-const btnDisabledStyle = {
+const btnDisabledStyle: React.CSSProperties = {
   ...btnBase,
-  opacity: 0.35,
+  opacity: 0.3,
   cursor: 'not-allowed' as const,
 };
 
-const inputStyle = {
-  backgroundColor: '#0d0b08',
-  border: '1px solid var(--eq-border)',
+const inputStyle: React.CSSProperties = {
+  backgroundColor: '#050402',
+  border: '1px solid var(--eq-bevel-lo)',
+  borderTopColor: '#050402',
+  borderLeftColor: '#050402',
+  boxShadow: 'inset 1px 1px 3px rgba(0,0,0,0.8)',
   color: 'var(--eq-text)',
   padding: '6px 10px',
   fontSize: '14px',
@@ -148,15 +156,10 @@ export default function CharacterCreationScreen() {
 
   return (
     <div style={containerStyle}>
-      <div style={cardStyle}>
+      <div className="eq-window" style={cardStyle}>
         {/* Title */}
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ color: 'var(--eq-gold)', fontSize: '20px', fontWeight: 'bold', letterSpacing: '0.05em' }}>
-            ⚔️ &nbsp;Create Your Character&nbsp; ⚔️
-          </div>
-          <div style={{ color: 'var(--eq-text-dim)', fontSize: '12px', marginTop: '4px' }}>
-            Choose your race and class to enter the world of Norrath
-          </div>
+        <div className="eq-title-bar" style={{ fontSize: '14px', textAlign: 'center', padding: '8px', letterSpacing: '0.2em' }}>
+          ⚔&nbsp;&nbsp;Create Your Character&nbsp;&nbsp;⚔
         </div>
 
         {/* Name */}
@@ -257,25 +260,22 @@ export default function CharacterCreationScreen() {
         )}
 
         {/* Submit */}
-        <div style={{ textAlign: 'center' }}>
+        <div style={{ textAlign: 'center', padding: '14px' }}>
           <button
+            className={`eq-btn ${canCreate ? '' : ''}`}
             style={{
-              padding: '10px 32px',
-              fontSize: '15px',
-              fontFamily: 'inherit',
-              fontWeight: 'bold',
-              letterSpacing: '0.05em',
-              border: '2px solid',
-              borderColor: canCreate ? 'var(--eq-gold)' : 'var(--eq-border)',
-              backgroundColor: canCreate ? '#3a2a05' : '#1a1510',
-              color: canCreate ? 'var(--eq-gold)' : 'var(--eq-text-dim)',
+              padding: '8px 36px',
+              fontSize: '13px',
+              letterSpacing: '0.18em',
+              color: canCreate ? '#f0e060' : 'var(--eq-text-dim)',
               cursor: canCreate ? 'pointer' : 'not-allowed',
-              transition: 'all 0.15s',
+              opacity: canCreate ? 1 : 0.5,
+              textShadow: canCreate ? '0 0 8px rgba(200,160,0,0.5)' : 'none',
             }}
             disabled={!canCreate}
             onClick={handleSubmit}
           >
-            Enter the World
+            ENTER THE WORLD
           </button>
           {!canCreate && (
             <div style={{ fontSize: '11px', color: 'var(--eq-text-dim)', marginTop: '6px' }}>

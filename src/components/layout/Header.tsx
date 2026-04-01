@@ -1,43 +1,65 @@
-interface HeaderProps {
-  onHelp?: () => void;
-  onOptions?: () => void;
-  onPersona?: () => void;
-}
+import { useGameStore } from '../../store/gameStore';
 
-export function Header({ onHelp, onOptions, onPersona }: HeaderProps) {
+export function Header() {
+  const player = useGameStore((s) => s.player);
+  const characterCreated = useGameStore((s) => s.characterCreated);
+
   return (
     <header
-      className="flex items-center justify-between px-4 py-2 border-b"
       style={{
-        backgroundColor: 'var(--eq-panel)',
-        borderColor: 'var(--eq-border)',
-        color: 'var(--eq-text)',
+        background: 'linear-gradient(to bottom, #181208 0%, #0c0a06 100%)',
+        borderBottom: `1px solid var(--eq-bevel-lo)`,
+        boxShadow: '0 1px 0 rgba(200,160,80,0.08), 0 2px 8px rgba(0,0,0,0.9)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '3px 10px',
+        flexShrink: 0,
+        userSelect: 'none',
       }}
     >
-      <div className="flex gap-2">
-        {[['HELP', onHelp], ['OPTIONS', onOptions], ['PERSONA', onPersona]].map(([label, handler]) => (
-          <button
-            key={label as string}
-            onClick={handler as () => void}
-            className="px-3 py-1 text-xs rounded border transition-colors hover:opacity-80"
-            style={{
-              backgroundColor: '#2a2218',
-              borderColor: 'var(--eq-border)',
-              color: 'var(--eq-text)',
-            }}
-          >
-            {label as string}
+      {/* Left — menu buttons */}
+      <div style={{ display: 'flex', gap: '2px' }}>
+        {['EQ', 'OPTIONS', 'HELP', 'PERSONA'].map((label) => (
+          <button key={label} className="eq-btn" style={{ padding: '2px 8px', fontSize: '10px' }}>
+            {label}
           </button>
         ))}
       </div>
-      <h1
-        className="text-xl font-bold tracking-wide"
-        style={{ color: 'var(--eq-gold)', fontFamily: '"Palatino Linotype", Palatino, Georgia, serif' }}
+
+      {/* Center — logo */}
+      <div
+        style={{
+          fontFamily: '"Palatino Linotype", Palatino, Georgia, serif',
+          fontSize: '15px',
+          fontWeight: 'bold',
+          letterSpacing: '0.18em',
+          color: 'var(--eq-gold)',
+          textShadow: '0 0 12px rgba(200,140,0,0.5), 0 1px 3px rgba(0,0,0,1)',
+          textTransform: 'uppercase',
+        }}
       >
-        ⚔️ EverQuest Idle
-      </h1>
-      <div className="text-xs" style={{ color: 'var(--eq-text-dim)' }}>
-        Norrath awaits...
+        EverQuest Idle
+      </div>
+
+      {/* Right — player tag */}
+      <div
+        style={{
+          fontSize: '10px',
+          color: 'var(--eq-text-dim)',
+          letterSpacing: '0.05em',
+          textAlign: 'right',
+        }}
+      >
+        {characterCreated ? (
+          <>
+            <span style={{ color: 'var(--eq-gold)' }}>{player.name}</span>
+            <span style={{ margin: '0 4px', color: 'var(--eq-bevel-lo)' }}>|</span>
+            <span>Lv {player.level} {player.class}</span>
+          </>
+        ) : (
+          <span style={{ color: 'var(--eq-text-dim)', fontStyle: 'italic' }}>Norrath awaits…</span>
+        )}
       </div>
     </header>
   );

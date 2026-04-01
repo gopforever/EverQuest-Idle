@@ -17,6 +17,18 @@ Players choose a classic EQ class and race, then progress through zones by fight
 - **Optional Backend:** Supabase (cloud saves/syncing)
 - **Package Manager:** npm
 
+## Phase 10 — EQ 1999 UI Redesign (Complete)
+
+- **`src/index.css`** fully rewritten: design token system (`--eq-bg`, `--eq-panel`, `--eq-bevel-hi/lo`, `--eq-border`, `--eq-gold`, bar colors); `.eq-window` (beveled stone chrome using directional border-colors + box-shadow); `.eq-title-bar` (dark gradient + gold ALL-CAPS text + text-shadow glow); `.eq-btn / eq-btn-active / eq-btn-danger` (stone-raised buttons with directional 3D borders); `.eq-bar-track / eq-bar-fill / eq-bar-hp / mana / xp / end / enemy` (solid fill bars with shine overlay); `.eq-gem-slot` (dark inset gem frames); `.eq-chat` (monospace combat log); `.eq-divider` (horizontal gradient rule)
+- **`EQPanelHeader.tsx`** — now just renders `.eq-title-bar` div; zero inline styles
+- **`HpBar.tsx`** — fully rewritten: `eq-bar-track` + `eq-bar-fill` + named bar class; configurable height; colored label with bar type color; shows `current/max` values; no Tailwind color classes
+- **`Header.tsx`** — thin menu bar with EQ/OPTIONS/HELP/PERSONA `eq-btn` buttons, centered gold title, right-side character tag
+- **`LeftPanel.tsx`** — `eq-window` sidebar, WINDOWS title bar, all 12 nav buttons styled as `eq-btn` with active gold highlight
+- **`MainView.tsx`** — `eq-window` zone window with title bar; zone art area; monster display with `eq-bar-enemy`; player HP/Mana/XP bars; coin display; auto-combat `eq-btn`
+- **`CombatLog.tsx`** — `eq-window` with dark gradient header bar, filter tabs, monospace `eq-chat` log area; compact 170px height
+- **`RightPanel.tsx`** — `eq-window` sidebar: Character, Target, Group, Actions sections with `eq-title-bar` headings and `eq-divider` separators
+- **`CharacterCreationScreen.tsx`** — uses `eq-window`, `eq-title-bar`, `eq-btn`, inset input fields matching the stone aesthetic
+
 ## Phase 9 — Vanilla EQ Content (Complete)
 
 - **Data:** `spells.ts` (8 caster/priest classes L1–60), `factions.ts` (20+ factions + vendor pricing), `quests.ts` (8 quests), named boss drops in `items.ts`, `monsters.ts` (Pyzjn, Kirak Vil, Lady Vox, Lord Nagafen with real P99 loot)

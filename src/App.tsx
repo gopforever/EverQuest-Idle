@@ -20,49 +20,22 @@ import { useGameLoop } from './hooks/useGameLoop';
 import { useGameStore } from './store/gameStore';
 import CharacterCreationScreen from './components/CharacterCreationScreen';
 
-
 function PanelContent({ activePanel }: { activePanel: PanelId }) {
   switch (activePanel) {
-    case 'inventory': return <InventoryPanel />;
-    case 'zones': return <ZonesPanel />;
-    case 'skills': return <SkillsPanel />;
-    case 'spells': return <SpellsPanel />;
-    case 'who': return <WhoPanel />;
-    case 'agents': return <LlmSettingsPanel />;
-    case 'guild': return <GuildPanel />;
+    case 'inventory':    return <InventoryPanel />;
+    case 'zones':        return <ZonesPanel />;
+    case 'skills':       return <SkillsPanel />;
+    case 'spells':       return <SpellsPanel />;
+    case 'who':          return <WhoPanel />;
+    case 'agents':       return <LlmSettingsPanel />;
+    case 'guild':        return <GuildPanel />;
     case 'achievements': return <AchievementsPanel />;
-    case 'bazaar': return <BazaarPanel />;
-    case 'tradeskill': return <TradeskillPanel />;
-    case 'quests':    return <QuestsPanel />;
-    case 'factions':  return <FactionsPanel />;
-    default: return null;
+    case 'bazaar':       return <BazaarPanel />;
+    case 'tradeskill':   return <TradeskillPanel />;
+    case 'quests':       return <QuestsPanel />;
+    case 'factions':     return <FactionsPanel />;
+    default:             return null;
   }
-}
-
-/** Compact status bar showing engine is ticking + key player stats. */
-function StatusBar() {
-  const player = useGameStore((s) => s.player);
-  const tickCount = useGameStore((s) => s.tickCount);
-  const currentZone = useGameStore((s) => s.currentZone);
-
-  const xpPct = player.xpToNextLevel > 0
-    ? Math.floor((player.xp / player.xpToNextLevel) * 100)
-    : 0;
-
-  return (
-    <div
-      className="flex items-center gap-4 px-3 py-1 text-xs border-b"
-      style={{ borderColor: 'var(--eq-border)', backgroundColor: 'var(--eq-panel)', color: 'var(--eq-text-dim)' }}
-    >
-      <span style={{ color: 'var(--eq-gold)' }}>{player.name}</span>
-      <span>Lv {player.level} {player.class}</span>
-      <span>XP: {xpPct}%</span>
-      <span>Zone: <span style={{ color: 'var(--eq-gold)' }}>{currentZone.name}</span></span>
-      <span style={{ marginLeft: 'auto' }}>
-        ⏱ Tick <span style={{ color: 'var(--eq-gold)' }}>#{tickCount}</span>
-      </span>
-    </div>
-  );
 }
 
 export default function App() {
@@ -76,30 +49,45 @@ export default function App() {
 
   return (
     <div
-      className="flex flex-col h-screen overflow-hidden"
-      style={{ backgroundColor: 'var(--eq-bg)', color: 'var(--eq-text)', fontFamily: '"Palatino Linotype", Palatino, Georgia, serif' }}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100vh',
+        overflow: 'hidden',
+        backgroundColor: 'var(--eq-bg)',
+        color: 'var(--eq-text)',
+      }}
     >
       <Header />
-      <StatusBar />
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left nav */}
+
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden', padding: '4px', gap: '4px' }}>
+
+        {/* Left nav — window buttons */}
         <LeftPanel activePanel={activePanel} onPanelChange={setActivePanel} />
 
-        {/* Side panel content */}
+        {/* Side panel content window */}
         <div
-          className="flex flex-col border-r overflow-hidden"
-          style={{ width: '260px', minWidth: '260px', borderColor: 'var(--eq-border)', backgroundColor: 'var(--eq-panel)' }}
+          className="eq-window"
+          style={{
+            width: '270px',
+            minWidth: '270px',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            borderRadius: 0,
+            flexShrink: 0,
+          }}
         >
           <PanelContent activePanel={activePanel} />
         </div>
 
-        {/* Main view + combat log */}
-        <div className="flex flex-col flex-1 overflow-hidden">
+        {/* Center — main view + combat log */}
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', gap: '0', minWidth: 0 }}>
           <MainView />
           <CombatLog />
         </div>
 
-        {/* Right panel */}
+        {/* Right — character/target/group panel */}
         <RightPanel />
       </div>
     </div>

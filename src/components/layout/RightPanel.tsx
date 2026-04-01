@@ -26,94 +26,71 @@ function GhostDetailModal({ ghost, onClose }: { ghost: GhostPlayer; onClose: () 
   return (
     <div
       style={{
-        position: 'fixed',
-        inset: 0,
-        backgroundColor: 'rgba(0,0,0,0.8)',
+        position: 'fixed', inset: 0,
+        backgroundColor: 'rgba(0,0,0,0.85)',
         zIndex: 1000,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}
       onClick={onClose}
     >
       <div
+        className="eq-window"
         style={{
-          backgroundColor: 'var(--eq-panel)',
-          border: '2px solid var(--eq-border)',
-          padding: '12px',
-          minWidth: '320px',
-          maxWidth: '400px',
-          maxHeight: '80vh',
-          overflowY: 'auto',
-          fontFamily: '"Palatino Linotype", Palatino, Georgia, serif',
-          color: 'var(--eq-text)',
-          fontSize: '12px',
+          padding: '0',
+          minWidth: '300px', maxWidth: '380px',
+          maxHeight: '80vh', overflowY: 'auto',
+          borderRadius: 0,
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <EQPanelHeader title={`${ghost.name} — Level ${ghost.level} ${ghost.class}`} />
-        <div className="text-xs mb-3" style={{ color: 'var(--eq-text-dim)' }}>
-          {ghost.race} | {ghost.personality}
-        </div>
+        <EQPanelHeader title={`${ghost.name} — Lv ${ghost.level} ${ghost.class}`} />
+        <div style={{ padding: '8px' }}>
+          <div style={{ fontSize: '10px', color: 'var(--eq-text-dim)', marginBottom: '6px', letterSpacing: '0.05em' }}>
+            {ghost.race} &nbsp;·&nbsp; {ghost.personality}
+          </div>
 
-        {/* HP/Mana bars */}
-        <div className="mb-3 space-y-1">
-          <HpBar current={ghost.stats.hp} max={ghost.stats.maxHp} label="HP" colorClass="hp" />
-          {CASTER_CLASSES.includes(ghost.class) && (
-            <HpBar current={ghost.stats.mana} max={ghost.stats.maxMana} label="Mana" colorClass="mana" />
-          )}
-        </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginBottom: '8px' }}>
+            <HpBar current={ghost.stats.hp}   max={ghost.stats.maxHp}   label="HP"   colorClass="hp"   showText height={13} />
+            {CASTER_CLASSES.includes(ghost.class) && (
+              <HpBar current={ghost.stats.mana} max={ghost.stats.maxMana} label="Mana" colorClass="mana" showText height={13} />
+            )}
+          </div>
 
-        {/* Zone/Activity */}
-        <div className="mb-3 text-xs" style={{ color: 'var(--eq-text-dim)' }}>
-          <div>Zone: <span style={{ color: 'var(--eq-text)' }}>{ghost.currentZone}</span></div>
-          <div>Activity: <span style={{ color: 'var(--eq-text)' }}>{getActivityText(ghost.currentActivity)}</span></div>
-        </div>
+          <div style={{ fontSize: '10px', color: 'var(--eq-text-dim)', marginBottom: '8px' }}>
+            <div>Zone: <span style={{ color: 'var(--eq-text)' }}>{ghost.currentZone}</span></div>
+            <div>Activity: <span style={{ color: 'var(--eq-text)' }}>{getActivityText(ghost.currentActivity)}</span></div>
+          </div>
 
-        {/* Stats grid */}
-        <EQPanelHeader title="ATTRIBUTES" />
-        <div className="grid grid-cols-3 gap-1 mb-3 text-xs">
-          {(['str', 'sta', 'agi', 'dex', 'wis', 'int', 'cha'] as const).map((s) => (
-            <div key={s} className="flex justify-between px-1">
-              <span style={{ color: 'var(--eq-text-dim)' }}>{s.toUpperCase()}</span>
-              <span style={{ color: 'var(--eq-text)' }}>{ghost.stats[s]}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* Gear slots */}
-        <EQPanelHeader title="EQUIPMENT" />
-        <div className="space-y-0.5 mb-3 text-xs">
-          {ALL_EQUIP_SLOTS.map((slot) => {
-            const item = ghost.gear[slot];
-            return (
-              <div key={slot} className="flex justify-between px-1">
-                <span style={{ color: 'var(--eq-text-dim)' }}>{slot}</span>
-                <span style={{ color: item ? 'var(--eq-gold)' : 'var(--eq-text-dim)' }}>
-                  {item ? item.name : '—'}
-                </span>
+          <EQPanelHeader title="ATTRIBUTES" />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1px', marginBottom: '8px' }}>
+            {(['str', 'sta', 'agi', 'dex', 'wis', 'int', 'cha'] as const).map((s) => (
+              <div key={s} style={{ display: 'flex', justifyContent: 'space-between', padding: '1px 4px', fontSize: '10px' }}>
+                <span style={{ color: 'var(--eq-text-dim)' }}>{s.toUpperCase()}</span>
+                <span style={{ color: 'var(--eq-text)' }}>{ghost.stats[s]}</span>
               </div>
-            );
-          })}
-        </div>
+            ))}
+          </div>
 
-        {/* Close button */}
-        <div className="text-center">
-          <button
-            onClick={onClose}
-            style={{
-              backgroundColor: '#2a1f0a',
-              border: '1px solid var(--eq-border)',
-              color: 'var(--eq-gold)',
-              padding: '4px 20px',
-              cursor: 'pointer',
-              fontSize: '12px',
-              fontFamily: 'inherit',
-            }}
-          >
-            [CLOSE]
-          </button>
+          <EQPanelHeader title="EQUIPMENT" />
+          <div style={{ marginBottom: '8px' }}>
+            {ALL_EQUIP_SLOTS.map((slot) => {
+              const item = ghost.gear[slot];
+              return (
+                <div key={slot} style={{ display: 'flex', justifyContent: 'space-between', padding: '1px 4px', fontSize: '10px' }}>
+                  <span style={{ color: 'var(--eq-text-dim)', minWidth: '70px' }}>{slot}</span>
+                  <span style={{ color: item ? 'var(--eq-gold)' : '#3a3228', textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '160px' }}>
+                    {item ? item.name : '—'}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
+          <div style={{ textAlign: 'center' }}>
+            <button className="eq-btn" onClick={onClose} style={{ padding: '4px 20px' }}>
+              [CLOSE]
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -121,143 +98,155 @@ function GhostDetailModal({ ghost, onClose }: { ghost: GhostPlayer; onClose: () 
 }
 
 export function RightPanel() {
-  const player = useGameStore((s) => s.player);
-  const ghosts = useGameStore((s) => s.ghosts);
-  const combat = useGameStore((s) => s.combat);
+  const player  = useGameStore((s) => s.player);
+  const ghosts  = useGameStore((s) => s.ghosts);
+  const combat  = useGameStore((s) => s.combat);
   const toggleAutoCombat = useGameStore((s) => s.toggleAutoCombat);
 
   const [selectedGhost, setSelectedGhost] = useState<GhostPlayer | null>(null);
-
   const onlineGhosts = ghosts.filter((g) => g.isOnline).slice(0, 5);
-
-  const goldBtnStyle: React.CSSProperties = {
-    backgroundColor: '#1a1510',
-    border: '1px solid var(--eq-border)',
-    color: 'var(--eq-gold)',
-    padding: '2px 8px',
-    cursor: 'pointer',
-    fontSize: '11px',
-    fontFamily: 'inherit',
-  };
 
   return (
     <aside
-      className="flex flex-col border-l"
+      className="eq-window"
       style={{
-        width: '220px',
-        minWidth: '220px',
-        backgroundColor: 'var(--eq-panel)',
-        borderColor: 'var(--eq-border)',
-        color: 'var(--eq-text)',
+        width: '210px',
+        minWidth: '210px',
+        display: 'flex',
+        flexDirection: 'column',
+        borderRadius: 0,
+        overflow: 'hidden',
+        flexShrink: 0,
       }}
     >
       {selectedGhost && (
         <GhostDetailModal ghost={selectedGhost} onClose={() => setSelectedGhost(null)} />
       )}
 
-      {/* Group Window */}
-      <div className="p-2 border-b" style={{ borderColor: 'var(--eq-border)' }}>
-        <EQPanelHeader title="GROUP WINDOW" />
-        {/* Player row */}
-        <div className="mb-2">
-          <div className="flex justify-between text-xs mb-0.5">
-            <span style={{ color: 'var(--eq-gold)' }} className="font-bold truncate max-w-24">
-              ★ {player.name}
+      {/* ── Character info ──────────────────────────────────────── */}
+      <div style={{ padding: '0' }}>
+        <div className="eq-title-bar">Character</div>
+        <div style={{ padding: '5px 8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
+            <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--eq-gold)', letterSpacing: '0.05em' }}>
+              {player.name}
             </span>
-            <span style={{ color: 'var(--eq-text-dim)' }}>Lv{player.level}</span>
+            <span style={{ fontSize: '10px', color: 'var(--eq-text-dim)' }}>
+              Lv {player.level}
+            </span>
           </div>
-          <HpBar current={player.stats.hp} max={player.stats.maxHp} colorClass="hp" showText={false} />
-          {CASTER_CLASSES.includes(player.class) && (
-            <div className="mt-0.5">
-              <HpBar current={player.stats.mana} max={player.stats.maxMana} colorClass="mana" showText={false} />
-            </div>
-          )}
-        </div>
-        {/* Ghost rows */}
-        {onlineGhosts.map((ghost) => (
-          <div
-            key={ghost.id}
-            className="mb-2 cursor-pointer hover:opacity-80 transition-opacity"
-            onClick={() => setSelectedGhost(ghost)}
-          >
-            <div className="flex justify-between text-xs mb-0.5">
-              <span className="truncate max-w-24" style={{ color: 'var(--eq-text)' }}>
-                {ghost.name}
-              </span>
-              <span style={{ color: 'var(--eq-text-dim)' }}>Lv{ghost.level}</span>
-            </div>
-            <HpBar current={ghost.stats.hp} max={ghost.stats.maxHp} colorClass="hp" showText={false} />
-            {CASTER_CLASSES.includes(ghost.class) && (
-              <div className="mt-0.5">
-                <HpBar current={ghost.stats.mana} max={ghost.stats.maxMana} colorClass="mana" showText={false} />
-              </div>
+          <div style={{ fontSize: '9px', color: 'var(--eq-text-dim)', marginBottom: '5px', letterSpacing: '0.04em' }}>
+            {player.race} {player.class}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+            <HpBar current={player.stats.hp}   max={player.stats.maxHp}   label="HP"   colorClass="hp"   showText height={12} />
+            {CASTER_CLASSES.includes(player.class) && (
+              <HpBar current={player.stats.mana} max={player.stats.maxMana} label="Mana" colorClass="mana" showText height={12} />
             )}
-            <div className="text-xs italic mt-0.5" style={{ color: 'var(--eq-text-dim)', fontSize: '10px' }}>
-              {getActivityText(ghost.currentActivity)}
+            <HpBar current={player.xp} max={player.xpToNextLevel} label="XP" colorClass="xp" showText height={10} />
+          </div>
+        </div>
+      </div>
+
+      <div className="eq-divider" style={{ margin: '0 4px' }} />
+
+      {/* ── Current Target ──────────────────────────────────────── */}
+      <div style={{ padding: '0', flexShrink: 0 }}>
+        <div className="eq-title-bar">Target</div>
+        <div style={{ padding: '5px 8px', minHeight: '54px' }}>
+          {combat.currentMonster ? (
+            <>
+              <div style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--eq-orange)', marginBottom: '4px', letterSpacing: '0.03em' }}>
+                {combat.currentMonster.name}
+                {combat.currentMonsterLevel > 0 && (
+                  <span style={{ fontWeight: 'normal', color: 'var(--eq-text-dim)', marginLeft: '5px', fontSize: '9px' }}>
+                    (Lv {combat.currentMonsterLevel})
+                  </span>
+                )}
+              </div>
+              <HpBar
+                current={combat.monsterCurrentHp}
+                max={combat.currentMonster.hp}
+                label="HP"
+                colorClass="enemy"
+                showText
+                height={12}
+              />
+              <div style={{ fontSize: '9px', color: 'var(--eq-text-dim)', marginTop: '2px', textTransform: 'capitalize' }}>
+                {combat.currentMonster.type}
+              </div>
+            </>
+          ) : (
+            <div style={{ fontSize: '10px', color: 'var(--eq-text-dim)', fontStyle: 'italic', paddingTop: '6px', textAlign: 'center' }}>
+              No target
             </div>
-          </div>
-        ))}
-        {/* Empty slots */}
-        {Array.from({ length: Math.max(0, 5 - onlineGhosts.length) }).map((_, i) => (
-          <div key={`empty-${i}`} className="mb-2">
-            <div className="text-xs mb-0.5" style={{ color: 'var(--eq-text-dim)' }}>--- empty ---</div>
-            <div className="h-2.5 rounded-sm" style={{ backgroundColor: '#1a1510', border: '1px solid var(--eq-border)' }} />
-          </div>
-        ))}
-        {/* Group footer buttons */}
-        <div className="flex gap-1 mt-1">
-          <button style={{ ...goldBtnStyle, opacity: 0.4, cursor: 'not-allowed' }} disabled>[INVITE]</button>
-          {onlineGhosts.length > 0 && (
-            <button style={{ ...goldBtnStyle, opacity: 0.4, cursor: 'not-allowed' }} disabled>[DISBAND]</button>
           )}
         </div>
       </div>
 
-      {/* Current Target */}
-      <div className="p-2 border-b" style={{ borderColor: 'var(--eq-border)' }}>
-        <EQPanelHeader title="CURRENT TARGET" />
-        {combat.currentMonster ? (
-          <div>
-            <div className="text-xs font-bold mb-1" style={{ color: 'var(--eq-orange)' }}>
-              {combat.currentMonster.name}
+      <div className="eq-divider" style={{ margin: '0 4px' }} />
+
+      {/* ── Group Window ────────────────────────────────────────── */}
+      <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <div className="eq-title-bar">Group</div>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '5px 8px' }}>
+
+          {/* Player row */}
+          <div style={{ marginBottom: '5px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', marginBottom: '2px' }}>
+              <span style={{ color: 'var(--eq-gold)', fontWeight: 'bold' }}>★ {player.name}</span>
+              <span style={{ color: 'var(--eq-text-dim)' }}>Lv{player.level}</span>
             </div>
-            <HpBar
-              current={combat.monsterCurrentHp}
-              max={combat.currentMonster.hp}
-              label="HP"
-              colorClass="hp"
-            />
-            <div className="mt-1 text-xs" style={{ color: 'var(--eq-text-dim)' }}>
-              Type: {combat.currentMonster.type}
+            <HpBar current={player.stats.hp} max={player.stats.maxHp} colorClass="hp" height={8} />
+          </div>
+
+          {/* Ghost rows */}
+          {onlineGhosts.map((ghost) => (
+            <div
+              key={ghost.id}
+              style={{ marginBottom: '5px', cursor: 'pointer', opacity: 0.9 }}
+              onClick={() => setSelectedGhost(ghost)}
+              title={`Click to inspect ${ghost.name}`}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', marginBottom: '2px' }}>
+                <span style={{ color: 'var(--eq-text)', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {ghost.name}
+                </span>
+                <span style={{ color: 'var(--eq-text-dim)', fontSize: '9px' }}>Lv{ghost.level}</span>
+              </div>
+              <HpBar current={ghost.stats.hp} max={ghost.stats.maxHp} colorClass="hp" height={7} />
+              {CASTER_CLASSES.includes(ghost.class) && (
+                <div style={{ marginTop: '1px' }}>
+                  <HpBar current={ghost.stats.mana} max={ghost.stats.maxMana} colorClass="mana" height={5} />
+                </div>
+              )}
+              <div style={{ fontSize: '9px', color: 'var(--eq-text-dim)', fontStyle: 'italic', marginTop: '1px' }}>
+                {getActivityText(ghost.currentActivity)}
+              </div>
             </div>
-          </div>
-        ) : (
-          <div className="text-xs text-center py-2" style={{ color: 'var(--eq-text-dim)' }}>
-            No target
-          </div>
-        )}
+          ))}
+
+          {/* Empty slots */}
+          {Array.from({ length: Math.max(0, 5 - onlineGhosts.length) }).map((_, i) => (
+            <div key={`empty-${i}`} style={{ marginBottom: '5px' }}>
+              <div style={{ fontSize: '9px', color: '#2a2218', marginBottom: '2px' }}>— empty —</div>
+              <div style={{ height: '7px', backgroundColor: '#050402', border: '1px solid var(--eq-bevel-lo)' }} />
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* Quick actions */}
-      <div className="p-2 flex flex-col gap-1">
-        <EQPanelHeader title="ACTIONS" />
+      <div className="eq-divider" style={{ margin: '0 4px' }} />
+
+      {/* ── Actions ─────────────────────────────────────────────── */}
+      <div style={{ padding: '5px 8px', flexShrink: 0 }}>
+        <div className="eq-title-bar" style={{ marginBottom: '5px' }}>Actions</div>
         <button
-          className="w-full py-1 text-xs rounded border"
-          style={{ backgroundColor: '#1a1510', borderColor: 'var(--eq-border)', color: 'var(--eq-text-dim)', opacity: 0.5, cursor: 'not-allowed' }}
-          disabled
-        >
-          ABILITIES
-        </button>
-        <button
-          className="w-full py-1 text-xs rounded border font-bold"
+          className={`eq-btn ${combat.autoAttacking ? 'eq-btn-active' : ''}`}
           onClick={toggleAutoCombat}
-          style={{
-            backgroundColor: combat.autoAttacking ? '#2a1f0a' : '#1a1510',
-            borderColor: combat.autoAttacking ? 'var(--eq-gold)' : 'var(--eq-border)',
-            color: combat.autoAttacking ? 'var(--eq-gold)' : 'var(--eq-text-dim)',
-          }}
+          style={{ width: '100%', padding: '4px', fontSize: '10px', letterSpacing: '0.08em' }}
         >
-          {combat.autoAttacking ? '[AUTO COMBAT: ON]' : '[AUTO COMBAT: OFF]'}
+          {combat.autoAttacking ? '⚔ AUTO COMBAT: ON' : '⚔ AUTO COMBAT: OFF'}
         </button>
       </div>
     </aside>

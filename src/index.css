@@ -2,81 +2,255 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   EverQuest 1999 — Design Tokens
+───────────────────────────────────────────────────────────────────────────── */
 :root {
-  --eq-bg: #0d0b08;
-  --eq-panel: #1a1510;
-  --eq-border: #8b6914;
-  --eq-border-light: #c4982a;
-  --eq-text: #e8dcc8;
-  --eq-text-dim: #9a8870;
-  --eq-gold: #d4a520;
-  --eq-orange: #c86400;
-  --eq-red: #8b1a1a;
-  --eq-blue: #1a3a8b;
-  --eq-green: #1a6b1a;
+  /* Backgrounds */
+  --eq-bg:          #000000;
+  --eq-panel:       #0c0a07;
+  --eq-panel-mid:   #140f09;
+  --eq-panel-light: #1c1610;
+
+  /* Border tones (beveled stone effect) */
+  --eq-bevel-hi:    #b8934a;   /* top-left highlight */
+  --eq-bevel-lo:    #3a2810;   /* bottom-right shadow */
+  --eq-border:      #7a5c2a;   /* mid border */
+  --eq-border-light:#c8a050;
+
+  /* Text */
+  --eq-text:        #d4c9a8;
+  --eq-text-dim:    #8a7e66;
+  --eq-text-bright: #f0e8cc;
+  --eq-gold:        #d4a520;
+  --eq-gold-dark:   #9a7510;
+
+  /* Bars */
+  --eq-hp-fill:     #990000;
+  --eq-hp-high:     #cc2222;
+  --eq-mana-fill:   #003399;
+  --eq-mana-high:   #2255cc;
+  --eq-xp-fill:     #664400;
+  --eq-xp-high:     #996600;
+  --eq-end-fill:    #006633;
+
+  /* Accent */
+  --eq-orange:      #cc6600;
+  --eq-red:         #cc2222;
+  --eq-green:       #33cc33;
+  --eq-chat-bg:     #000000;
 }
 
-* {
-  box-sizing: border-box;
-}
+/* ─────────────────────────────────────────────────────────────────────────────
+   Base reset
+───────────────────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-body {
-  margin: 0;
-  padding: 0;
-  background-color: var(--eq-bg);
-  color: var(--eq-text);
-  font-family: "Palatino Linotype", Palatino, Georgia, serif;
+html, body, #root {
+  height: 100%;
   overflow: hidden;
 }
 
-/* Custom EQ scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--eq-panel);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--eq-border);
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--eq-border-light);
-}
-
-/* EQ button style */
-.eq-btn {
-  background-color: #2a2218;
-  border: 1px solid var(--eq-border);
+body {
+  background-color: var(--eq-bg);
   color: var(--eq-text);
-  padding: 4px 10px;
-  font-family: inherit;
-  font-size: 0.75rem;
-  cursor: pointer;
-  transition: background-color 0.15s, border-color 0.15s;
+  /* EQ used a custom bitmap-like font; "Cinzel" is a solid serif approximation.
+     Fall back to Palatino for systems without web fonts. */
+  font-family: "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  font-size: 12px;
+  line-height: 1.3;
+  -webkit-font-smoothing: antialiased;
 }
 
-.eq-btn:hover {
-  background-color: #3a3228;
-  border-color: var(--eq-border-light);
-}
+/* ─────────────────────────────────────────────────────────────────────────────
+   Scrollbar — thin & dark
+───────────────────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar         { width: 7px; height: 7px; }
+::-webkit-scrollbar-track   { background: #050403; }
+::-webkit-scrollbar-thumb   { background: var(--eq-border); }
+::-webkit-scrollbar-thumb:hover { background: var(--eq-border-light); }
 
-.eq-btn:active {
-  background-color: #1a1510;
-}
-
-/* EQ panel border */
-.eq-panel {
+/* ─────────────────────────────────────────────────────────────────────────────
+   EQ Window Chrome
+   Classic beveled "stone" border — lighter on top/left, darker on bottom/right
+───────────────────────────────────────────────────────────────────────────── */
+.eq-window {
   background-color: var(--eq-panel);
+  border: 2px solid var(--eq-border);
+  border-top-color:  var(--eq-bevel-hi);
+  border-left-color: var(--eq-bevel-hi);
+  border-bottom-color: var(--eq-bevel-lo);
+  border-right-color:  var(--eq-bevel-lo);
+  box-shadow:
+    inset 1px 1px 0 rgba(200,160,80,0.15),
+    inset -1px -1px 0 rgba(0,0,0,0.6),
+    2px 2px 10px rgba(0,0,0,0.95);
+}
+
+/* Inner raised border (double-chrome look) */
+.eq-window-inner {
+  border: 1px solid var(--eq-bevel-lo);
+  border-top-color:  var(--eq-border);
+  border-left-color: var(--eq-border);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   EQ Title Bar  (the stone header strip at top of each window)
+───────────────────────────────────────────────────────────────────────────── */
+.eq-title-bar {
+  background: linear-gradient(to bottom, #1e1608 0%, #120e06 50%, #0e0c04 100%);
+  border-bottom: 1px solid var(--eq-bevel-lo);
+  box-shadow: inset 0 1px 0 rgba(200,160,80,0.2);
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--eq-gold);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.9), 0 0 8px rgba(180,120,0,0.3);
+  user-select: none;
+  flex-shrink: 0;
+}
+
+/* Divider line between sections (EQ used thin horizontal rules) */
+.eq-divider {
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--eq-bevel-lo) 20%, var(--eq-border) 50%, var(--eq-bevel-lo) 80%, transparent);
+  margin: 3px 0;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   EQ Button (stone-raised appearance)
+───────────────────────────────────────────────────────────────────────────── */
+.eq-btn {
+  background: linear-gradient(to bottom, #251e12 0%, #1a1508 50%, #120f05 100%);
   border: 1px solid var(--eq-border);
+  border-top-color:  var(--eq-bevel-hi);
+  border-left-color: var(--eq-bevel-hi);
+  border-bottom-color: var(--eq-bevel-lo);
+  border-right-color:  var(--eq-bevel-lo);
+  color: var(--eq-text);
+  padding: 3px 10px;
+  font-family: inherit;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: filter 0.1s;
+  box-shadow: inset 0 1px 0 rgba(200,160,80,0.1);
+  white-space: nowrap;
+}
+.eq-btn:hover  { filter: brightness(1.25); }
+.eq-btn:active {
+  background: linear-gradient(to bottom, #120f05 0%, #1a1508 100%);
+  border-top-color:  var(--eq-bevel-lo);
+  border-left-color: var(--eq-bevel-lo);
+  border-bottom-color: var(--eq-bevel-hi);
+  border-right-color:  var(--eq-bevel-hi);
 }
 
-/* Combat log parchment style */
-.combat-log-bg {
-  background-color: var(--eq-panel);
-  border-top: 1px solid var(--eq-border);
+.eq-btn-active {
+  background: linear-gradient(to bottom, #1a2a10 0%, #0f1a08 100%);
+  border-top-color:  #3a6a20;
+  border-left-color: #3a6a20;
+  color: #66dd44;
 }
+
+.eq-btn-danger {
+  color: #dd4444;
+  border-color: #662222;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   EQ Label / section header text
+───────────────────────────────────────────────────────────────────────────── */
+.eq-label {
+  font-size: 10px;
+  color: var(--eq-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   HP / Mana / XP Bars (classic EQ solid-fill bars)
+───────────────────────────────────────────────────────────────────────────── */
+.eq-bar-track {
+  background-color: #050402;
+  border: 1px solid var(--eq-bevel-lo);
+  border-top-color:  #050402;
+  border-left-color: #050402;
+  box-shadow: inset 1px 1px 3px rgba(0,0,0,0.8);
+  height: 12px;
+  overflow: hidden;
+  position: relative;
+}
+
+.eq-bar-fill {
+  height: 100%;
+  transition: width 0.2s ease-out;
+  position: relative;
+}
+
+/* Subtle "shine" overlay on bars */
+.eq-bar-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(255,255,255,0.07) 0%, transparent 60%);
+}
+
+.eq-bar-hp    { background: linear-gradient(to right, var(--eq-hp-fill), var(--eq-hp-high)); }
+.eq-bar-mana  { background: linear-gradient(to right, var(--eq-mana-fill), var(--eq-mana-high)); }
+.eq-bar-xp    { background: linear-gradient(to right, var(--eq-xp-fill), var(--eq-xp-high)); }
+.eq-bar-end   { background: linear-gradient(to right, var(--eq-end-fill), #009944); }
+.eq-bar-enemy { background: linear-gradient(to right, #550000, #aa0000); }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Spell Gem (classic colored EQ gem slots)
+───────────────────────────────────────────────────────────────────────────── */
+.eq-gem-slot {
+  background: #050402;
+  border: 2px solid var(--eq-bevel-lo);
+  border-top-color:  #050402;
+  border-left-color: #050402;
+  box-shadow: inset 1px 1px 4px rgba(0,0,0,0.9);
+  width: 44px;
+  height: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+}
+
+.eq-gem-slot.has-spell {
+  border-color: var(--eq-border);
+  border-top-color:  var(--eq-bevel-lo);
+  border-left-color: var(--eq-bevel-lo);
+  border-bottom-color: var(--eq-bevel-hi);
+  border-right-color:  var(--eq-bevel-hi);
+}
+
+.eq-gem-slot.is-swap-source {
+  border-color: #cc9900;
+  box-shadow: inset 0 0 6px rgba(200,150,0,0.4), 0 0 6px rgba(200,150,0,0.3);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Chat / Combat Log area
+───────────────────────────────────────────────────────────────────────────── */
+.eq-chat {
+  background-color: var(--eq-chat-bg);
+  font-family: "Lucida Console", "Courier New", monospace;
+  font-size: 11px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Misc utilities
+───────────────────────────────────────────────────────────────────────────── */
+.eq-text-gold   { color: var(--eq-gold); }
+.eq-text-dim    { color: var(--eq-text-dim); }
+.eq-text-red    { color: var(--eq-red); }
+.eq-text-green  { color: var(--eq-green); }
+.eq-text-orange { color: var(--eq-orange); }
