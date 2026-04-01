@@ -447,7 +447,9 @@ export const MONSTERS: Record<string, Monster> = {
     hp: 120,
     damageRange: { min: 6, max: 15 },
     lootTable: [
-      { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'bone_chips', dropChance: 0.3, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'bear_claw', dropChance: 0.5, minQuantity: 1, maxQuantity: 2 },
+      { itemId: 'polar_bear_skin_boots', dropChance: 0.05 },
     ],
     xpReward: 96,
     sprite: '/assets/sprites/monsters/placeholder.png',
@@ -465,6 +467,8 @@ export const MONSTERS: Record<string, Monster> = {
     damageRange: { min: 10, max: 25 },
     lootTable: [
       { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'ivory_mammoth_tusk', dropChance: 0.35 },
+      { itemId: 'mammoth_hide_cloak', dropChance: 0.07 },
     ],
     xpReward: 160,
     sprite: '/assets/sprites/monsters/placeholder.png',
@@ -482,6 +486,9 @@ export const MONSTERS: Record<string, Monster> = {
     damageRange: { min: 15, max: 37 },
     lootTable: [
       { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'frost_giant_blood', dropChance: 0.5 },
+      { itemId: 'fine_steel_two_hander', dropChance: 0.08 },
+      { itemId: 'mammoth_hide_cloak', dropChance: 0.05 },
     ],
     xpReward: 240,
     sprite: '/assets/sprites/monsters/placeholder.png',
@@ -499,6 +506,7 @@ export const MONSTERS: Record<string, Monster> = {
     damageRange: { min: 4, max: 10 },
     lootTable: [
       { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'ice_goblin_talisman', dropChance: 0.05 },
     ],
     xpReward: 64,
     sprite: '/assets/sprites/monsters/placeholder.png',
@@ -516,6 +524,9 @@ export const MONSTERS: Record<string, Monster> = {
     damageRange: { min: 6, max: 15 },
     lootTable: [
       { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'ice_goblin_talisman', dropChance: 0.1 },
+      { itemId: 'crystal_chitin_gauntlets', dropChance: 0.04 },
+      { itemId: 'goblin_frosted_crown', dropChance: 0.03 },
     ],
     xpReward: 96,
     sprite: '/assets/sprites/monsters/placeholder.png',
@@ -534,6 +545,9 @@ export const MONSTERS: Record<string, Monster> = {
     lootTable: [
       { itemId: 'words_of_cazicthule', dropChance: 0.05 },
       { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'goblin_frosted_crown', dropChance: 0.15 },
+      { itemId: 'permafrost_greatsword', dropChance: 0.1 },
+      { itemId: 'crystal_chitin_breastplate', dropChance: 0.06 },
     ],
     xpReward: 320,
     sprite: '/assets/sprites/monsters/placeholder.png',
@@ -551,6 +565,9 @@ export const MONSTERS: Record<string, Monster> = {
     damageRange: { min: 25, max: 62 },
     lootTable: [
       { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'hill_giant_toe', dropChance: 0.7, minQuantity: 1, maxQuantity: 2 },
+      { itemId: 'fine_steel_two_hander', dropChance: 0.1 },
+      { itemId: 'fine_antique_sword', dropChance: 0.05 },
     ],
     xpReward: 400,
     sprite: '/assets/sprites/monsters/placeholder.png',
@@ -568,6 +585,9 @@ export const MONSTERS: Record<string, Monster> = {
     damageRange: { min: 30, max: 75 },
     lootTable: [
       { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'cyclops_eye', dropChance: 0.65 },
+      { itemId: 'fine_antique_sword', dropChance: 0.12 },
+      { itemId: 'karana_wind_bracer', dropChance: 0.08 },
     ],
     xpReward: 480,
     sprite: '/assets/sprites/monsters/placeholder.png',
@@ -585,6 +605,8 @@ export const MONSTERS: Record<string, Monster> = {
     damageRange: { min: 12, max: 31 },
     lootTable: [
       { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'cyclops_eye', dropChance: 0.5 },
+      { itemId: 'fine_steel_two_hander', dropChance: 0.06 },
     ],
     xpReward: 200,
     sprite: '/assets/sprites/monsters/placeholder.png',
@@ -602,6 +624,8 @@ export const MONSTERS: Record<string, Monster> = {
     damageRange: { min: 17, max: 43 },
     lootTable: [
       { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'griffon_feather', dropChance: 0.7, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'karana_wind_bracer', dropChance: 0.05 },
     ],
     xpReward: 280,
     sprite: '/assets/sprites/monsters/placeholder.png',
@@ -619,6 +643,8 @@ export const MONSTERS: Record<string, Monster> = {
     damageRange: { min: 12, max: 31 },
     lootTable: [
       { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'karana_wind_bracer', dropChance: 0.12 },
+      { itemId: 'elemental_staff', dropChance: 0.05 },
     ],
     xpReward: 200,
     sprite: '/assets/sprites/monsters/placeholder.png',
@@ -636,6 +662,9 @@ export const MONSTERS: Record<string, Monster> = {
     damageRange: { min: 10, max: 25 },
     lootTable: [
       { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'centaur_hide_boots', dropChance: 0.08 },
+      { itemId: 'griffon_feather', dropChance: 0.2 },
+      { itemId: 'fine_steel_long_sword', dropChance: 0.07 },
     ],
     xpReward: 160,
     sprite: '/assets/sprites/monsters/placeholder.png',
@@ -653,6 +682,8 @@ export const MONSTERS: Record<string, Monster> = {
     damageRange: { min: 9, max: 22 },
     lootTable: [
       { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'fine_steel_sword', dropChance: 0.08 },
+      { itemId: 'orcish_axe', dropChance: 0.06 },
     ],
     xpReward: 144,
     sprite: '/assets/sprites/monsters/placeholder.png',
@@ -670,6 +701,8 @@ export const MONSTERS: Record<string, Monster> = {
     damageRange: { min: 9, max: 22 },
     lootTable: [
       { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'fine_steel_sword', dropChance: 0.1 },
+      { itemId: 'fine_steel_long_sword', dropChance: 0.06 },
     ],
     xpReward: 144,
     sprite: '/assets/sprites/monsters/placeholder.png',
@@ -705,6 +738,8 @@ export const MONSTERS: Record<string, Monster> = {
     damageRange: { min: 2, max: 6 },
     lootTable: [
       { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'orcish_axe', dropChance: 0.05 },
+      { itemId: 'orc_fang_necklace', dropChance: 0.06 },
     ],
     xpReward: 44,
     sprite: '/assets/sprites/monsters/placeholder.png',
@@ -756,7 +791,8 @@ export const MONSTERS: Record<string, Monster> = {
     hp: 40,
     damageRange: { min: 2, max: 5 },
     lootTable: [
-      { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'bone_chips', dropChance: 0.35, minQuantity: 1, maxQuantity: 4 },
+      { itemId: 'bone_earring', dropChance: 0.04 },
     ],
     xpReward: 32,
     sprite: '/assets/sprites/monsters/placeholder.png',
@@ -793,6 +829,8 @@ export const MONSTERS: Record<string, Monster> = {
     lootTable: [
       { itemId: 'cracked_leather_tunic', dropChance: 0.05 },
       { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'dark_elf_imbued_sword', dropChance: 0.06 },
+      { itemId: 'spider_silk', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
     ],
     xpReward: 96,
     sprite: '/assets/sprites/monsters/placeholder.png',
@@ -811,6 +849,7 @@ export const MONSTERS: Record<string, Monster> = {
     lootTable: [
       { itemId: 'spiderling_silk_cap', dropChance: 0.05 },
       { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'spider_silk', dropChance: 0.45, minQuantity: 1, maxQuantity: 3 },
     ],
     xpReward: 72,
     sprite: '/assets/sprites/monsters/placeholder.png',
@@ -828,6 +867,9 @@ export const MONSTERS: Record<string, Monster> = {
     damageRange: { min: 3, max: 8 },
     lootTable: [
       { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'ghoul_meat', dropChance: 0.3 },
+      { itemId: 'zombie_skin_bracer', dropChance: 0.06 },
+      { itemId: 'mummy_wrappings', dropChance: 0.15 },
     ],
     xpReward: 56,
     sprite: '/assets/sprites/monsters/placeholder.png',
@@ -845,6 +887,9 @@ export const MONSTERS: Record<string, Monster> = {
     damageRange: { min: 9, max: 22 },
     lootTable: [
       { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'mummy_wrappings', dropChance: 0.5, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'ring_of_the_dead', dropChance: 0.04 },
+      { itemId: 'desert_wind_bracer', dropChance: 0.05 },
     ],
     xpReward: 144,
     sprite: '/assets/sprites/monsters/placeholder.png',
@@ -862,6 +907,9 @@ export const MONSTERS: Record<string, Monster> = {
     damageRange: { min: 8, max: 20 },
     lootTable: [
       { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'ghoul_meat', dropChance: 0.5 },
+      { itemId: 'zombie_skin_bracer', dropChance: 0.08 },
+      { itemId: 'bracelet_of_woven_bone', dropChance: 0.04 },
     ],
     xpReward: 128,
     sprite: '/assets/sprites/monsters/placeholder.png',
@@ -879,6 +927,9 @@ export const MONSTERS: Record<string, Monster> = {
     damageRange: { min: 12, max: 31 },
     lootTable: [
       { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'lava_goblin_skin', dropChance: 0.35 },
+      { itemId: 'fire_emerald_ring', dropChance: 0.06 },
+      { itemId: 'magma_bracer', dropChance: 0.05 },
     ],
     xpReward: 200,
     sprite: '/assets/sprites/monsters/placeholder.png',
@@ -896,6 +947,8 @@ export const MONSTERS: Record<string, Monster> = {
     damageRange: { min: 9, max: 22 },
     lootTable: [
       { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'lava_goblin_skin', dropChance: 0.45 },
+      { itemId: 'magma_bracer', dropChance: 0.06 },
     ],
     xpReward: 144,
     sprite: '/assets/sprites/monsters/placeholder.png',
@@ -913,6 +966,9 @@ export const MONSTERS: Record<string, Monster> = {
     damageRange: { min: 17, max: 43 },
     lootTable: [
       { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'lava_goblin_skin', dropChance: 0.3 },
+      { itemId: 'magma_bracer', dropChance: 0.1 },
+      { itemId: 'smoldering_brand', dropChance: 0.04 },
     ],
     xpReward: 280,
     sprite: '/assets/sprites/monsters/placeholder.png',
@@ -930,6 +986,8 @@ export const MONSTERS: Record<string, Monster> = {
     damageRange: { min: 15, max: 37 },
     lootTable: [
       { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'golem_eye', dropChance: 0.5 },
+      { itemId: 'fire_emerald_ring', dropChance: 0.06 },
     ],
     xpReward: 240,
     sprite: '/assets/sprites/monsters/placeholder.png',
@@ -947,6 +1005,7 @@ export const MONSTERS: Record<string, Monster> = {
     damageRange: { min: 6, max: 16 },
     lootTable: [
       { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'ratman_bone_ring', dropChance: 0.12 },
     ],
     xpReward: 104,
     sprite: '/assets/sprites/monsters/placeholder.png',
@@ -964,6 +1023,8 @@ export const MONSTERS: Record<string, Monster> = {
     damageRange: { min: 4, max: 11 },
     lootTable: [
       { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'goblin_skin_leggings', dropChance: 0.06 },
+      { itemId: 'runnyeye_battle_axe', dropChance: 0.05 },
     ],
     xpReward: 72,
     sprite: '/assets/sprites/monsters/placeholder.png',
@@ -981,6 +1042,8 @@ export const MONSTERS: Record<string, Monster> = {
     damageRange: { min: 5, max: 12 },
     lootTable: [
       { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'goblin_war_beads', dropChance: 0.15 },
+      { itemId: 'goblin_champion_shield', dropChance: 0.05 },
     ],
     xpReward: 80,
     sprite: '/assets/sprites/monsters/placeholder.png',
@@ -999,6 +1062,9 @@ export const MONSTERS: Record<string, Monster> = {
     lootTable: [
       { itemId: 'words_of_cazicthule', dropChance: 0.05 },
       { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'eye_of_the_goblin_king', dropChance: 0.12 },
+      { itemId: 'goblin_champion_shield', dropChance: 0.18 },
+      { itemId: 'runnyeye_battle_axe', dropChance: 0.15 },
     ],
     xpReward: 224,
     sprite: '/assets/sprites/monsters/placeholder.png',
@@ -1016,6 +1082,9 @@ export const MONSTERS: Record<string, Monster> = {
     damageRange: { min: 22, max: 56 },
     lootTable: [
       { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'sand_giant_molar', dropChance: 0.7, minQuantity: 1, maxQuantity: 2 },
+      { itemId: 'desert_wind_bracer', dropChance: 0.08 },
+      { itemId: 'fine_steel_two_hander', dropChance: 0.06 },
     ],
     xpReward: 360,
     sprite: '/assets/sprites/monsters/placeholder.png',
@@ -1033,6 +1102,7 @@ export const MONSTERS: Record<string, Monster> = {
     damageRange: { min: 4, max: 10 },
     lootTable: [
       { itemId: 'lambent_stone', dropChance: 0.05 },
+      { itemId: 'will_o_wisp_essence', dropChance: 0.65 },
       { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
     ],
     xpReward: 64,
@@ -1051,6 +1121,7 @@ export const MONSTERS: Record<string, Monster> = {
     damageRange: { min: 5, max: 12 },
     lootTable: [
       { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'croc_hide', dropChance: 0.5 },
     ],
     xpReward: 80,
     sprite: '/assets/sprites/monsters/placeholder.png',
@@ -1068,6 +1139,8 @@ export const MONSTERS: Record<string, Monster> = {
     damageRange: { min: 7, max: 18 },
     lootTable: [
       { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'croc_hide', dropChance: 0.4 },
+      { itemId: 'oasis_croc_hide_boots', dropChance: 0.07 },
     ],
     xpReward: 120,
     sprite: '/assets/sprites/monsters/placeholder.png',
@@ -1085,6 +1158,9 @@ export const MONSTERS: Record<string, Monster> = {
     damageRange: { min: 9, max: 22 },
     lootTable: [
       { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'water_elemental_gem', dropChance: 0.55 },
+      { itemId: 'water_sprite_girdle', dropChance: 0.06 },
+      { itemId: 'elemental_staff', dropChance: 0.04 },
     ],
     xpReward: 144,
     sprite: '/assets/sprites/monsters/placeholder.png',
@@ -1483,6 +1559,8 @@ export const MONSTERS: Record<string, Monster> = {
     lootTable: [
       { itemId: 'battle_worn_axe', dropChance: 0.05 },
       { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'orc_legionnaire_helm', dropChance: 0.08 },
+      { itemId: 'orc_legionnaire_shield', dropChance: 0.06 },
     ],
     xpReward: 104,
     sprite: '/assets/sprites/monsters/placeholder.png',
@@ -1500,6 +1578,8 @@ export const MONSTERS: Record<string, Monster> = {
     damageRange: { min: 7, max: 17 },
     lootTable: [
       { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'fine_steel_sword', dropChance: 0.08 },
+      { itemId: 'crushbone_plate_gauntlets', dropChance: 0.05 },
     ],
     xpReward: 112,
     sprite: '/assets/sprites/monsters/placeholder.png',
@@ -1518,6 +1598,9 @@ export const MONSTERS: Record<string, Monster> = {
     lootTable: [
       { itemId: 'words_of_cazicthule', dropChance: 0.05 },
       { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'ambassador_dvinn_ring', dropChance: 0.25 },
+      { itemId: 'crushbone_belt', dropChance: 0.2 },
+      { itemId: 'dwarven_battle_axe', dropChance: 0.18 },
     ],
     xpReward: 280,
     sprite: '/assets/sprites/monsters/placeholder.png',
@@ -1535,6 +1618,9 @@ export const MONSTERS: Record<string, Monster> = {
     damageRange: { min: 8, max: 20 },
     lootTable: [
       { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'festering_essence', dropChance: 0.5 },
+      { itemId: 'zombie_skin_leggings', dropChance: 0.07 },
+      { itemId: 'ghoulish_visage', dropChance: 0.04 },
     ],
     xpReward: 128,
     sprite: '/assets/sprites/monsters/placeholder.png',
@@ -1552,6 +1638,9 @@ export const MONSTERS: Record<string, Monster> = {
     damageRange: { min: 12, max: 31 },
     lootTable: [
       { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'gargoyle_eye', dropChance: 0.6 },
+      { itemId: 'ring_of_unrest', dropChance: 0.06 },
+      { itemId: 'blade_of_carnage', dropChance: 0.03 },
     ],
     xpReward: 200,
     sprite: '/assets/sprites/monsters/placeholder.png',
@@ -1570,6 +1659,9 @@ export const MONSTERS: Record<string, Monster> = {
     lootTable: [
       { itemId: 'words_of_cazicthule', dropChance: 0.05 },
       { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'spook_the_ghastly_shroud', dropChance: 0.22 },
+      { itemId: 'ring_of_unrest', dropChance: 0.15 },
+      { itemId: 'ghoulish_visage', dropChance: 0.12 },
     ],
     xpReward: 240,
     sprite: '/assets/sprites/monsters/placeholder.png',
@@ -1587,6 +1679,7 @@ export const MONSTERS: Record<string, Monster> = {
     damageRange: { min: 9, max: 22 },
     lootTable: [
       { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'vampire_bat_wing', dropChance: 0.6, minQuantity: 1, maxQuantity: 2 },
     ],
     xpReward: 144,
     sprite: '/assets/sprites/monsters/placeholder.png',
@@ -1604,6 +1697,9 @@ export const MONSTERS: Record<string, Monster> = {
     damageRange: { min: 15, max: 37 },
     lootTable: [
       { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'mistmoore_guard_shield', dropChance: 0.1 },
+      { itemId: 'vampiric_bracer', dropChance: 0.07 },
+      { itemId: 'ancient_mistmoore_sword', dropChance: 0.05 },
     ],
     xpReward: 240,
     sprite: '/assets/sprites/monsters/placeholder.png',
@@ -1621,6 +1717,9 @@ export const MONSTERS: Record<string, Monster> = {
     damageRange: { min: 14, max: 35 },
     lootTable: [
       { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'flowing_black_robe', dropChance: 0.1 },
+      { itemId: 'blood_soaked_tome', dropChance: 0.15 },
+      { itemId: 'vampiric_bracer', dropChance: 0.08 },
     ],
     xpReward: 224,
     sprite: '/assets/sprites/monsters/placeholder.png',
@@ -1639,6 +1738,10 @@ export const MONSTERS: Record<string, Monster> = {
     lootTable: [
       { itemId: 'words_of_cazicthule', dropChance: 0.05 },
       { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'bone_clasped_girdle', dropChance: 0.15 },
+      { itemId: 'flowing_black_robe', dropChance: 0.12 },
+      { itemId: 'silver_chitin_hand_wraps', dropChance: 0.1 },
+      { itemId: 'ancient_mistmoore_sword', dropChance: 0.12 },
     ],
     xpReward: 400,
     sprite: '/assets/sprites/monsters/placeholder.png',
@@ -1656,6 +1759,8 @@ export const MONSTERS: Record<string, Monster> = {
     damageRange: { min: 6, max: 15 },
     lootTable: [
       { itemId: 'bone_chips', dropChance: 0.2, minQuantity: 1, maxQuantity: 3 },
+      { itemId: 'cauldron_leech_mandible', dropChance: 0.55 },
+      { itemId: 'water_sprite_girdle', dropChance: 0.04 },
     ],
     xpReward: 96,
     sprite: '/assets/sprites/monsters/placeholder.png',
@@ -1924,9 +2029,11 @@ export const MONSTERS: Record<string, Monster> = {
     hp: 29000,
     damageRange: { min: 80, max: 200 },
     lootTable: [
+      { itemId: 'kirak_vil_fang', dropChance: 0.85 },
       { itemId: 'tainted_darksteel_shield', dropChance: 0.20 },
       { itemId: 'fine_steel_long_sword', dropChance: 0.60 },
       { itemId: 'words_of_cazicthule', dropChance: 0.10 },
+      { itemId: 'dark_elf_imbued_sword', dropChance: 0.25 },
     ],
     xpReward: 8000,
     sprite: '/assets/sprites/monsters/placeholder.png',

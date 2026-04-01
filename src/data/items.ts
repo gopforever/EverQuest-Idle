@@ -1,4 +1,5 @@
 import type { Item, CharacterClass, Race } from '../types';
+import { ITEMS_EXPANDED } from './itemsExpanded';
 
 const ALL_CLASSES: CharacterClass[] = [
   'Warrior', 'Monk', 'Rogue', 'Paladin', 'ShadowKnight', 'Ranger', 'Bard',
@@ -15,6 +16,8 @@ const CASTER_CLASSES: CharacterClass[] = ['Cleric', 'Druid', 'Shaman', 'Wizard',
 const SHIELD_CLASSES: CharacterClass[] = ['Warrior', 'Paladin', 'ShadowKnight', 'Ranger', 'Cleric', 'Shaman', 'Bard'];
 
 export const ITEMS: Record<string, Item> = {
+  ...ITEMS_EXPANDED,
+
   rusty_short_sword: {
     id: 'rusty_short_sword',
     name: 'Rusty Short Sword',
